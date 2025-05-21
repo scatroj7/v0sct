@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/app/lib/db-server"
 import { getUserIdFromSession } from "@/app/lib/auth"
+import { v4 as uuidv4 } from "uuid"
 
 export async function GET(request: NextRequest) {
   try {
@@ -96,10 +97,15 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Yeni işlem ekle
+      // UUID oluştur
+      const transactionId = uuidv4()
+      console.log("Oluşturulan UUID:", transactionId)
+
+      // Yeni işlem ekle - UUID ile
       console.log("SQL sorgusu çalıştırılıyor...")
       const result = await sql`
         INSERT INTO transactions (
+          id,
           user_id, 
           amount, 
           date, 
@@ -108,6 +114,7 @@ export async function POST(request: NextRequest) {
           type
         ) 
         VALUES (
+          ${transactionId},
           ${userId}, 
           ${amount}, 
           ${body.date}, 

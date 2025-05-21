@@ -18,7 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, Plus, Trash2 } from "lucide-react"
+import { AlertCircle, Plus, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react"
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns"
 import { NexusDatePicker } from "@/components/ui/nexus-date-picker"
 
@@ -46,6 +46,10 @@ interface DateRange {
   endDate: Date | null
 }
 
+// Sıralama türleri
+type SortDirection = "asc" | "desc" | "none"
+type SortField = "date" | "description" | "category" | "amount" | null
+
 const TransactionsTab = () => {
   // İşlemler ve kategoriler
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -53,6 +57,10 @@ const TransactionsTab = () => {
   const [categories, setCategories] = useState<Category[]>([])
   const [incomeCategories, setIncomeCategories] = useState<Category[]>([])
   const [expenseCategories, setExpenseCategories] = useState<Category[]>([])
+
+  // Sıralama durumu
+  const [sortField, setSortField] = useState<SortField>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>("none")
 
   // Yeni işlem
   const [newTransaction, setNewTransaction] = useState({
@@ -355,7 +363,81 @@ const TransactionsTab = () => {
       filtered = filtered.filter((t) => t.amount <= Number.parseFloat(maxAmountFilter))
     }
 
+    // Sıralama
+    if (sortField && sortDirection !== "none") {
+      filtered = sortTransactions(filtered, sortField, sortDirection)
+    }
+
     setTransactions(filtered)
+  }
+
+  // İşlemleri sırala
+  const sortTransactions = (transactionsToSort: Transaction[], field: SortField, direction: SortDirection) => {
+    if (!field || direction === "none") return transactionsToSort
+
+    return [...transactionsToSort].sort((a, b) => {
+      let comparison = 0
+
+      switch (field) {
+        case "date":
+          comparison = new Date(a.date).getTime() - new Date(b.date).getTime()
+          break
+        case "description":
+          comparison = (a.description || "").localeCompare(b.description || "")
+          break
+        case "category":
+          comparison = (a.category_name || "").localeCompare(b.category_name || "")
+          break
+        case "amount":
+          comparison = a.amount - b.amount
+          break
+      }
+
+      return direction === "asc" ? comparison : -comparison
+    })
+  }
+
+  // Sıralama değiştir
+  const handleSort = (field: SortField) => {
+    let newDirection: SortDirection = "asc"
+
+    if (sortField === field) {
+      if (sortDirection === "asc") {
+        newDirection = "desc"
+      } else if (sortDirection === "desc") {
+        newDirection = "none"
+      } else {
+        newDirection = "asc"
+      }
+    }
+
+    setSortField(field)
+    setSortDirection(newDirection)
+
+    // Sıralamayı uygula
+    if (field && newDirection !== "none") {
+      setTransactions(sortTransactions(transactions, field, newDirection))
+    } else {
+      // Sıralama kaldırıldıysa, filtreleri yeniden uygula
+      filterTransactions()
+    }
+  }
+
+  // Sıralama ikonu
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4 ml-1 text-gray-400" />
+    }
+
+    if (sortDirection === "asc") {
+      return <ArrowUp className="h-4 w-4 ml-1 text-primary" />
+    }
+
+    if (sortDirection === "desc") {
+      return <ArrowDown className="h-4 w-4 ml-1 text-primary" />
+    }
+
+    return <ArrowUpDown className="h-4 w-4 ml-1 text-gray-400" />
   }
 
   // Filtreleri sıfırla
@@ -364,6 +446,8 @@ const TransactionsTab = () => {
     setDateFilter("all")
     setMinAmountFilter("")
     setMaxAmountFilter("")
+    setSortField(null)
+    setSortDirection("none")
 
     // Aktif sekmeye göre filtreleme yap
     let filtered = [...allTransactions]
@@ -708,15 +792,50 @@ const TransactionsTab = () => {
                   <th className="p-2 text-left">
                     <Checkbox checked={selectAll} onCheckedChange={toggleSelectAll} aria-label="Tümünü seç" />
                   </th>
-                  <th className="p-2 text-left">Tarih</th>
-                  <th className="p-2 text-left">Açıklama</th>
-                  <th className="p-2 text-left">Kategori</th>
-                  <th className="p-2 text-right">Tutar</th>
+                  <th
+                    className="p-2 text-left cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    onClick={() => handleSort("date")}
+                  >
+                    <div className="flex items-center">
+                      Tarih
+                      {getSortIcon("date")}
+                    </div>
+                  </th>
+                  <th
+                    className="p-2 text-left cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    onClick={() => handleSort("description")}
+                  >
+                    <div className="flex items-center">
+                      Açıklama
+                      {getSortIcon("description")}
+                    </div>
+                  </th>
+                  <th
+                    className="p-2 text-left cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    onClick={() => handleSort("category")}
+                  >
+                    <div className="flex items-center">
+                      Kategori
+                      {getSortIcon("category")}
+                    </div>
+                  </th>
+                  <th
+                    className="p-2 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    onClick={() => handleSort("amount")}
+                  >
+                    <div className="flex items-center justify-end">
+                      Tutar
+                      {getSortIcon("amount")}
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.map((transaction) => (
-                  <tr key={transaction.id} className="border-b">
+                  <tr
+                    key={transaction.id}
+                    className="border-b hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                  >
                     <td className="p-2">
                       <Checkbox
                         checked={selectedTransactions.includes(transaction.id)}
@@ -726,7 +845,21 @@ const TransactionsTab = () => {
                     </td>
                     <td className="p-2">{new Date(transaction.date).toLocaleDateString("tr-TR")}</td>
                     <td className="p-2">{transaction.description || "-"}</td>
-                    <td className="p-2">{transaction.category_name || "-"}</td>
+                    <td className="p-2">
+                      {transaction.category_name ? (
+                        <div className="flex items-center">
+                          {transaction.category_color && (
+                            <div
+                              className="w-3 h-3 rounded-full mr-2"
+                              style={{ backgroundColor: transaction.category_color }}
+                            ></div>
+                          )}
+                          {transaction.category_name}
+                        </div>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
                     <td
                       className={`p-2 text-right ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}
                     >
