@@ -1,76 +1,118 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { sql } from "@/app/lib/db-server"
-import { getUserIdFromSession } from "@/app/lib/auth"
+import { neon } from "@neondatabase/serverless"
+import { fetchLatestPrice } from "@/app/lib/api-services/price-service-v2"
+
+// Veritabanı bağlantısı
+const sql = neon(process.env.NEON_NEON_DATABASE_URL!)
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("Yatırımlar getiriliyor...")
-    const userId = getUserIdFromSession()
+    // Kullanıcı ID'sini al (gerçek uygulamada oturum yönetiminden gelecek)
+    const userId = "user123" // Örnek kullanıcı ID'si
 
-    if (!userId) {
-      return NextResponse.json({ error: "Oturum bulunamadı" }, { status: 401 })
-    }
-
+    // Yatırımları veritabanından çek
     const investments = await sql`
       SELECT * FROM investments
-      WHERE user_id = ${userId}::uuid
-      ORDER BY purchase_date DESC
+      WHERE user_id = ${userId}
+      ORDER BY created_at DESC
     `
 
-    console.log(`${investments.length} yatırım bulundu`)
+    // Her yatırım için güncel fiyatları çek
+    const investmentsWithPrices = await Promise.all(
+      investments.map(async (investment) => {
+        try {
+          // Güncel fiyatı çek
+          const priceData = await fetchLatestPrice(investment.category, investment.symbol || investment.type)
+          const currentPrice = priceData?.price || null
 
-    return NextResponse.json({
-      success: true,
-      investments: investments,
-    })
-  } catch (error) {
-    console.error("Yatırımlar getirilirken hata:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Yatırımlar getirilirken bir hata oluştu",
-        error: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
+          // Güncel değer ve kar/zarar hesapla
+          let currentValue = null
+          let profit = null
+          let profitPercentage = null
+
+          if (currentPrice !== null) {
+            currentValue = investment.amount * currentPrice
+            const investmentValue = investment.amount * investment.purchase_price
+            profit = currentValue - investmentValue
+            profitPercentage = investmentValue > 0 ? (profit / investmentValue) * 100 : 0
+          }
+
+          // Güncel fiyat bilgisini veritabanında güncelle
+          await sql`
+            UPDATE investments
+            SET 
+              current_price = ${currentPrice},
+              last_updated = NOW()
+            WHERE id = ${investment.id}
+          `
+
+          return {
+            ...investment,
+            current_price: currentPrice,
+            current_value: currentValue,
+            profit,
+            profit_percentage: profitPercentage,
+          }
+        } catch (error) {
+          console.error(`Yatırım fiyatı güncellenirken hata: ${error}`)
+          return investment
+        }
+      }),
     )
+
+    return NextResponse.json(investmentsWithPrices)
+  } catch (error) {
+    console.error("Yatırımlar yüklenirken hata:", error)
+    return NextResponse.json({ error: "Yatırımlar yüklenirken bir hata oluştu" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = getUserIdFromSession()
+    const body = await request.json()
+    const { name, category, type, amount, purchase_price, symbol, purchase_date, notes } = body
 
-    if (!userId) {
-      return NextResponse.json({ error: "Oturum bulunamadı" }, { status: 401 })
-    }
+    // Kullanıcı ID'sini al (gerçek uygulamada oturum yönetiminden gelecek)
+    const userId = "user123" // Örnek kullanıcı ID'si
 
-    const { name, type, amount, purchase_price, current_price, purchase_date, notes } = await request.json()
+    // Güncel fiyatı çek
+    const priceData = await fetchLatestPrice(category, symbol || type)
+    const currentPrice = priceData?.price || null
 
-    if (!name || !type || !amount || !purchase_price) {
-      return NextResponse.json({ error: "İsim, tür, miktar ve alış fiyatı gereklidir" }, { status: 400 })
-    }
-
-    // Yeni yatırım ekle
+    // Yeni yatırımı veritabanına ekle
     const result = await sql`
-      INSERT INTO investments (name, type, amount, purchase_price, current_price, purchase_date, notes, user_id) 
-      VALUES (${name}, ${type}, ${amount}, ${purchase_price}, ${current_price || purchase_price}, ${purchase_date || new Date().toISOString()}, ${notes || ""}, ${userId}::uuid) 
+      INSERT INTO investments (
+        name, 
+        category, 
+        type, 
+        amount, 
+        purchase_price, 
+        current_price,
+        symbol, 
+        purchase_date, 
+        notes, 
+        user_id,
+        last_updated
+      )
+      VALUES (
+        ${name}, 
+        ${category}, 
+        ${type}, 
+        ${amount}, 
+        ${purchase_price}, 
+        ${currentPrice},
+        ${symbol || null}, 
+        ${purchase_date}, 
+        ${notes}, 
+        ${userId},
+        NOW()
+      )
       RETURNING *
     `
 
-    return NextResponse.json({
-      success: true,
-      message: "Yatırım başarıyla eklendi",
-      investment: result[0],
-    })
+    return NextResponse.json(result[0])
   } catch (error) {
     console.error("Yatırım eklenirken hata:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Yatırım eklenirken bir hata oluştu",
-        error: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: "Yatırım eklenirken bir hata oluştu" }, { status: 500 })
   }
 }

@@ -10,9 +10,12 @@ const getDatabaseUrl = () => {
   // Tüm olası veritabanı URL'lerini kontrol et
   const dbUrl =
     process.env.POSTGRES_URL ||
+    process.env.NEON_POSTGRES_URL ||
+    process.env.NEON_DATABASE_URL ||
+    process.env.NEON_DATABASE_URL ||
     process.env.NEON_NEON_DATABASE_URL ||
-    process.env.DATABASE_URL ||
-    process.env.NEON_POSTGRES_URL
+    process.env.NEON_POSTGRES_URL_NON_POOLING ||
+    process.env.NEON_DATABASE_URL_UNPOOLED
 
   if (!dbUrl) {
     console.error("Veritabanı URL'si bulunamadı! Mevcut çevresel değişkenler:", {
@@ -20,16 +23,24 @@ const getDatabaseUrl = () => {
       hasDBUrl: !!process.env.DATABASE_URL,
       hasNeonDbUrl: !!process.env.NEON_DATABASE_URL,
       hasNeonPgUrl: !!process.env.NEON_POSTGRES_URL,
+      hasNeonPgUrlNonPooling: !!process.env.NEON_POSTGRES_URL_NON_POOLING,
+      hasNeonDbUrlUnpooled: !!process.env.NEON_DATABASE_URL_UNPOOLED,
+      // Tüm mevcut çevresel değişkenleri listele
+      envKeys: Object.keys(process.env).filter(
+        (key) => key.includes("NEON") || key.includes("DATABASE") || key.includes("POSTGRES"),
+      ),
     })
 
     // Test modunda çalışmak için sabit bir URL döndür
     if (process.env.NODE_ENV !== "production") {
+      console.log("Test modu için varsayılan veritabanı URL'si kullanılıyor")
       return "postgres://test:test@localhost:5432/test"
     }
 
     throw new Error("Veritabanı URL'si bulunamadı!")
   }
 
+  console.log("Veritabanı URL'si bulundu:", dbUrl.substring(0, 20) + "...")
   return dbUrl
 }
 

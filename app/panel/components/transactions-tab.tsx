@@ -294,6 +294,9 @@ const TransactionsTab = () => {
 
     try {
       setLoading(true)
+      setError(null)
+
+      console.log("Silinecek işlemler:", selectedTransactions)
 
       const response = await fetch("/api/transactions/batch-delete", {
         method: "POST",
@@ -305,11 +308,19 @@ const TransactionsTab = () => {
         }),
       })
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`)
+      const responseText = await response.text()
+      console.log("Silme işlemi yanıtı:", responseText)
+
+      let data
+      try {
+        data = JSON.parse(responseText)
+      } catch (e) {
+        throw new Error(`API yanıtı geçerli JSON değil: ${responseText}`)
       }
 
-      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText} - ${data.error || "Bilinmeyen hata"}`)
+      }
 
       if (data.success) {
         // İşlem başarılı, seçili işlemleri sıfırla ve işlemleri yeniden getir
@@ -317,7 +328,7 @@ const TransactionsTab = () => {
         setSelectAll(false)
         fetchTransactions()
       } else {
-        setError(data.message || "İşlemler silinirken bir hata oluştu.")
+        setError(data.error || "İşlemler silinirken bir hata oluştu.")
       }
     } catch (err) {
       console.error("İşlemler silinirken hata:", err)

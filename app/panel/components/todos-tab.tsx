@@ -18,10 +18,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/components/ui/use-toast"
 import { format } from "date-fns"
 import { tr } from "date-fns/locale"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { NexusDatePicker } from "@/components/ui/nexus-date-picker"
 
 interface Todo {
   id: number
@@ -42,7 +41,7 @@ const TodosTab = () => {
   const [newTodo, setNewTodo] = useState({
     title: "",
     description: "",
-    due_date: undefined as Date | undefined,
+    due_date: null as Date | null,
   })
 
   // Form state for editing todo
@@ -50,13 +49,13 @@ const TodosTab = () => {
     id: number
     title: string
     description: string
-    due_date: Date | undefined
+    due_date: Date | null
     completed: boolean
   }>({
     id: 0,
     title: "",
     description: "",
-    due_date: undefined,
+    due_date: null,
     completed: false,
   })
 
@@ -89,8 +88,8 @@ const TodosTab = () => {
       console.error("Error fetching todos:", error)
       setTodos([]) // Set to empty array on error
       toast({
-        title: "Error",
-        description: "Failed to fetch todos",
+        title: "Hata",
+        description: "Yapılacak işler getirilirken hata oluştu",
         variant: "destructive",
       })
     } finally {
@@ -125,7 +124,7 @@ const TodosTab = () => {
       setNewTodo({
         title: "",
         description: "",
-        due_date: undefined,
+        due_date: null,
       })
       setIsAddDialogOpen(false)
 
@@ -133,14 +132,14 @@ const TodosTab = () => {
       fetchTodos()
 
       toast({
-        title: "Success",
-        description: "Todo added successfully",
+        title: "Başarılı",
+        description: "Yapılacak iş başarıyla eklendi",
       })
     } catch (error) {
       console.error("Error adding todo:", error)
       toast({
-        title: "Error",
-        description: "Failed to add todo",
+        title: "Hata",
+        description: "Yapılacak iş eklenirken hata oluştu",
         variant: "destructive",
       })
     }
@@ -171,14 +170,14 @@ const TodosTab = () => {
       fetchTodos()
 
       toast({
-        title: "Success",
-        description: "Todo updated successfully",
+        title: "Başarılı",
+        description: "Yapılacak iş başarıyla güncellendi",
       })
     } catch (error) {
       console.error("Error updating todo:", error)
       toast({
-        title: "Error",
-        description: "Failed to update todo",
+        title: "Hata",
+        description: "Yapılacak iş güncellenirken hata oluştu",
         variant: "destructive",
       })
     }
@@ -186,7 +185,7 @@ const TodosTab = () => {
 
   // Handle deleting a todo
   const handleDeleteTodo = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this todo?")) {
+    if (!confirm("Bu yapılacak işi silmek istediğinize emin misiniz?")) {
       return
     }
 
@@ -203,14 +202,14 @@ const TodosTab = () => {
       fetchTodos()
 
       toast({
-        title: "Success",
-        description: "Todo deleted successfully",
+        title: "Başarılı",
+        description: "Yapılacak iş başarıyla silindi",
       })
     } catch (error) {
       console.error("Error deleting todo:", error)
       toast({
-        title: "Error",
-        description: "Failed to delete todo",
+        title: "Hata",
+        description: "Yapılacak iş silinirken hata oluştu",
         variant: "destructive",
       })
     }
@@ -239,8 +238,8 @@ const TodosTab = () => {
     } catch (error) {
       console.error("Error updating todo:", error)
       toast({
-        title: "Error",
-        description: "Failed to update todo",
+        title: "Hata",
+        description: "Yapılacak iş güncellenirken hata oluştu",
         variant: "destructive",
       })
     }
@@ -252,7 +251,7 @@ const TodosTab = () => {
       id: todo.id,
       title: todo.title,
       description: todo.description || "",
-      due_date: todo.due_date ? new Date(todo.due_date) : undefined,
+      due_date: todo.due_date ? new Date(todo.due_date) : null,
       completed: todo.completed,
     })
     setIsEditDialogOpen(true)
@@ -312,33 +311,17 @@ const TodosTab = () => {
                   Son Tarih
                 </Label>
                 <div className="col-span-3">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !newTodo.due_date && "text-muted-foreground",
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newTodo.due_date ? format(newTodo.due_date, "PPP", { locale: tr }) : <span>Tarih seçin</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={newTodo.due_date}
-                        onSelect={(date) =>
-                          setNewTodo({
-                            ...newTodo,
-                            due_date: date,
-                          })
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <NexusDatePicker
+                    value={newTodo.due_date}
+                    onChange={(date) => {
+                      console.log("New date selected:", date)
+                      setNewTodo({
+                        ...newTodo,
+                        due_date: date,
+                      })
+                    }}
+                    label=""
+                  />
                 </div>
               </div>
             </div>
@@ -473,33 +456,17 @@ const TodosTab = () => {
                 Son Tarih
               </Label>
               <div className="col-span-3">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !editTodo.due_date && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {editTodo.due_date ? format(editTodo.due_date, "PPP", { locale: tr }) : <span>Tarih seçin</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={editTodo.due_date}
-                      onSelect={(date) =>
-                        setEditTodo({
-                          ...editTodo,
-                          due_date: date,
-                        })
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <NexusDatePicker
+                  value={editTodo.due_date}
+                  onChange={(date) => {
+                    console.log("Edit date selected:", date)
+                    setEditTodo({
+                      ...editTodo,
+                      due_date: date,
+                    })
+                  }}
+                  label=""
+                />
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">

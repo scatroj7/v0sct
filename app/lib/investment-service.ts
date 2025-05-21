@@ -1,188 +1,233 @@
-// Alpha Vantage API için ücretsiz bir anahtar alınmalı
-// https://www.alphavantage.co/support/#api-key
-const ALPHA_VANTAGE_API_KEY = "demo" // Gerçek uygulamada çevre değişkeni olarak saklanmalı
+// Yatırım kategorileri
+export const investmentCategories = [
+  { value: "crypto", label: "Kripto Para" },
+  { value: "gold", label: "Altın" },
+  { value: "forex", label: "Döviz" },
+  { value: "stock", label: "Hisse Senedi" },
+]
 
-// Yatırım türlerine göre sembol formatları
-const formatSymbol = (type: string, symbol: string): string => {
-  switch (type) {
-    case "stock":
-      // Türk hisseleri için BIST. ekle
-      if (symbol.length <= 5 && !symbol.includes(".")) {
-        return `BIST.${symbol}`
-      }
-      return symbol
-    case "forex":
-      // Forex için para birimi çiftini kontrol et
-      if (!symbol.includes("/")) {
-        return `${symbol}/TRY` // Varsayılan olarak TRY ile eşleştir
-      }
-      return symbol
-    case "crypto":
-      // Kripto için BTC gibi sembolleri BTC/USD formatına dönüştür
-      if (!symbol.includes("/")) {
-        return `${symbol}/USD` // Varsayılan olarak USD ile eşleştir
-      }
-      return symbol
-    case "gold":
-      // Altın için XAU/USD veya XAU/TRY formatını kullan
-      if (symbol.toLowerCase() === "gold" || symbol.toLowerCase() === "xau") {
-        return "XAU/USD"
-      }
-      if (symbol.toLowerCase() === "gram" || symbol.toLowerCase() === "gram altın") {
-        return "XAU/TRY"
-      }
-      return symbol
-    default:
-      return symbol
-  }
+// Yatırım türleri (kategoriye göre)
+export const investmentTypes = {
+  crypto: [
+    { value: "Bitcoin", label: "Bitcoin (BTC)" },
+    { value: "Ethereum", label: "Ethereum (ETH)" },
+    { value: "BNB", label: "Binance Coin (BNB)" },
+    { value: "Solana", label: "Solana (SOL)" },
+    { value: "Cardano", label: "Cardano (ADA)" },
+    { value: "XRP", label: "XRP (XRP)" },
+    { value: "Dogecoin", label: "Dogecoin (DOGE)" },
+    { value: "Polkadot", label: "Polkadot (DOT)" },
+    { value: "Avalanche", label: "Avalanche (AVAX)" },
+    { value: "Polygon", label: "Polygon (MATIC)" },
+    { value: "Diğer Kripto", label: "Diğer Kripto Para" },
+  ],
+  gold: [
+    { value: "Gram Altın", label: "Gram Altın" },
+    { value: "Çeyrek Altın", label: "Çeyrek Altın" },
+    { value: "Yarım Altın", label: "Yarım Altın" },
+    { value: "Tam Altın", label: "Tam Altın" },
+    { value: "Cumhuriyet Altını", label: "Cumhuriyet Altını" },
+    { value: "Ata Altın", label: "Ata Altın" },
+    { value: "Reşat Altını", label: "Reşat Altını" },
+    { value: "22 Ayar Bilezik", label: "22 Ayar Bilezik" },
+    { value: "14 Ayar Altın", label: "14 Ayar Altın" },
+    { value: "18 Ayar Altın", label: "18 Ayar Altın" },
+    { value: "Diğer Altın", label: "Diğer Altın" },
+  ],
+  forex: [
+    { value: "Amerikan Doları", label: "Amerikan Doları (USD)" },
+    { value: "Euro", label: "Euro (EUR)" },
+    { value: "İngiliz Sterlini", label: "İngiliz Sterlini (GBP)" },
+    { value: "İsviçre Frangı", label: "İsviçre Frangı (CHF)" },
+    { value: "Japon Yeni", label: "Japon Yeni (JPY)" },
+    { value: "Kanada Doları", label: "Kanada Doları (CAD)" },
+    { value: "Avustralya Doları", label: "Avustralya Doları (AUD)" },
+    { value: "Çin Yuanı", label: "Çin Yuanı (CNY)" },
+    { value: "Rus Rublesi", label: "Rus Rublesi (RUB)" },
+    { value: "Suudi Riyali", label: "Suudi Riyali (SAR)" },
+    { value: "Diğer Döviz", label: "Diğer Döviz" },
+  ],
+  stock: [
+    { value: "BIST", label: "Borsa İstanbul (BIST)" },
+    { value: "NASDAQ", label: "NASDAQ" },
+    { value: "NYSE", label: "New York Borsası (NYSE)" },
+    { value: "Diğer Borsa", label: "Diğer Borsa" },
+  ],
 }
 
-// Alpha Vantage API'dan güncel fiyat çekme
-export const fetchLatestPrice = async (
-  investmentType: string,
-  symbol: string,
-): Promise<{ price: number; timestamp: string } | null> => {
+// Hisse senedi sembolleri (borsaya göre)
+export const stockSymbols = {
+  BIST: [
+    { value: "THYAO", label: "Türk Hava Yolları (THYAO)" },
+    { value: "ASELS", label: "Aselsan (ASELS)" },
+    { value: "KCHOL", label: "Koç Holding (KCHOL)" },
+    { value: "EREGL", label: "Ereğli Demir Çelik (EREGL)" },
+    { value: "GARAN", label: "Garanti Bankası (GARAN)" },
+    { value: "AKBNK", label: "Akbank (AKBNK)" },
+    { value: "YKBNK", label: "Yapı Kredi Bankası (YKBNK)" },
+    { value: "TUPRS", label: "Tüpraş (TUPRS)" },
+    { value: "SAHOL", label: "Sabancı Holding (SAHOL)" },
+    { value: "SISE", label: "Şişecam (SISE)" },
+    { value: "BIMAS", label: "BİM (BIMAS)" },
+    { value: "ARCLK", label: "Arçelik (ARCLK)" },
+    { value: "TOASO", label: "Tofaş (TOASO)" },
+    { value: "FROTO", label: "Ford Otosan (FROTO)" },
+    { value: "PETKM", label: "Petkim (PETKM)" },
+    { value: "DIGER", label: "Diğer BIST Hissesi" },
+  ],
+  NASDAQ: [
+    { value: "AAPL", label: "Apple Inc. (AAPL)" },
+    { value: "MSFT", label: "Microsoft Corp. (MSFT)" },
+    { value: "AMZN", label: "Amazon.com Inc. (AMZN)" },
+    { value: "GOOGL", label: "Alphabet Inc. (GOOGL)" },
+    { value: "META", label: "Meta Platforms Inc. (META)" },
+    { value: "TSLA", label: "Tesla Inc. (TSLA)" },
+    { value: "NVDA", label: "NVIDIA Corp. (NVDA)" },
+    { value: "NFLX", label: "Netflix Inc. (NFLX)" },
+    { value: "PYPL", label: "PayPal Holdings Inc. (PYPL)" },
+    { value: "INTC", label: "Intel Corp. (INTC)" },
+    { value: "DIGER", label: "Diğer NASDAQ Hissesi" },
+  ],
+  NYSE: [
+    { value: "JPM", label: "JPMorgan Chase & Co. (JPM)" },
+    { value: "BAC", label: "Bank of America Corp. (BAC)" },
+    { value: "WMT", label: "Walmart Inc. (WMT)" },
+    { value: "PG", label: "Procter & Gamble Co. (PG)" },
+    { value: "JNJ", label: "Johnson & Johnson (JNJ)" },
+    { value: "XOM", label: "Exxon Mobil Corp. (XOM)" },
+    { value: "V", label: "Visa Inc. (V)" },
+    { value: "MA", label: "Mastercard Inc. (MA)" },
+    { value: "DIS", label: "Walt Disney Co. (DIS)" },
+    { value: "KO", label: "Coca-Cola Co. (KO)" },
+    { value: "DIGER", label: "Diğer NYSE Hissesi" },
+  ],
+  "Diğer Borsa": [{ value: "DIGER", label: "Diğer Hisse Senedi" }],
+}
+
+// Fiyat verileri (gerçekçi değerler)
+const priceData = {
+  crypto: {
+    Bitcoin: 1750000, // TL cinsinden
+    Ethereum: 95000,
+    BNB: 12000,
+    Solana: 5000,
+    Cardano: 15,
+    XRP: 20,
+    Dogecoin: 5,
+    Polkadot: 250,
+    Avalanche: 1200,
+    Polygon: 40,
+    "Diğer Kripto": 100,
+  },
+  gold: {
+    "Gram Altın": 2400,
+    "Çeyrek Altın": 9800,
+    "Yarım Altın": 19600,
+    "Tam Altın": 39200,
+    "Cumhuriyet Altını": 40000,
+    "Ata Altın": 39500,
+    "Reşat Altını": 41000,
+    "22 Ayar Bilezik": 2200,
+    "14 Ayar Altın": 1400,
+    "18 Ayar Altın": 1800,
+    "Diğer Altın": 2300,
+  },
+  forex: {
+    "Amerikan Doları": 32.5,
+    Euro: 35.2,
+    "İngiliz Sterlini": 41.8,
+    "İsviçre Frangı": 36.5,
+    "Japon Yeni": 0.21,
+    "Kanada Doları": 23.8,
+    "Avustralya Doları": 21.5,
+    "Çin Yuanı": 4.5,
+    "Rus Rublesi": 0.35,
+    "Suudi Riyali": 8.65,
+    "Diğer Döviz": 10,
+  },
+  stock: {
+    // BIST
+    THYAO: 170,
+    ASELS: 85,
+    KCHOL: 120,
+    EREGL: 45,
+    GARAN: 32,
+    AKBNK: 28,
+    YKBNK: 18,
+    TUPRS: 210,
+    SAHOL: 38,
+    SISE: 42,
+    BIMAS: 145,
+    ARCLK: 95,
+    TOASO: 180,
+    FROTO: 950,
+    PETKM: 12,
+    // NASDAQ
+    AAPL: 5800,
+    MSFT: 12500,
+    AMZN: 5200,
+    GOOGL: 5500,
+    META: 4800,
+    TSLA: 7200,
+    NVDA: 28000,
+    NFLX: 2100,
+    PYPL: 2300,
+    INTC: 1200,
+    // NYSE
+    JPM: 5900,
+    BAC: 1300,
+    WMT: 2200,
+    PG: 5100,
+    JNJ: 5300,
+    XOM: 3800,
+    V: 8500,
+    MA: 14000,
+    DIS: 3500,
+    KO: 2100,
+    // Diğer
+    DIGER: 100,
+  },
+}
+
+// Güncel fiyat çekme fonksiyonu (simüle edilmiş)
+export async function fetchLatestPrice(category: string, symbol: string): Promise<{ price: number } | null> {
   try {
-    const formattedSymbol = formatSymbol(investmentType, symbol)
-    console.log(`${formattedSymbol} için fiyat çekiliyor...`)
+    console.log(`${category} kategorisinde ${symbol} için fiyat çekiliyor...`)
 
-    let apiUrl = ""
-    let responseHandler: (data: any) => { price: number; timestamp: string } | null
+    // Simüle edilmiş gecikme
+    await new Promise((resolve) => setTimeout(resolve, 300))
 
-    switch (investmentType) {
-      case "stock":
-        // Hisse senedi için Global Quote API'ını kullan
-        apiUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${formattedSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`
-        responseHandler = (data) => {
-          if (data["Global Quote"] && data["Global Quote"]["05. price"]) {
-            return {
-              price: Number.parseFloat(data["Global Quote"]["05. price"]),
-              timestamp: new Date().toISOString(),
-            }
-          }
-          return null
-        }
-        break
+    let basePrice = 0
 
-      case "forex":
-        // Döviz için Currency Exchange Rate API'ını kullan
-        const [fromCurrency, toCurrency] = formattedSymbol.split("/")
-        apiUrl = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${fromCurrency}&to_currency=${toCurrency}&apikey=${ALPHA_VANTAGE_API_KEY}`
-        responseHandler = (data) => {
-          if (data["Realtime Currency Exchange Rate"] && data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]) {
-            return {
-              price: Number.parseFloat(data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]),
-              timestamp: data["Realtime Currency Exchange Rate"]["6. Last Refreshed"] || new Date().toISOString(),
-            }
-          }
-          return null
-        }
-        break
-
+    // Kategori ve sembol/tür bazında fiyat belirle
+    switch (category) {
       case "crypto":
-        // Kripto için Digital Currency Exchange Rate API'ını kullan
-        const [cryptoSymbol, marketCurrency] = formattedSymbol.split("/")
-        apiUrl = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${cryptoSymbol}&to_currency=${marketCurrency}&apikey=${ALPHA_VANTAGE_API_KEY}`
-        responseHandler = (data) => {
-          if (data["Realtime Currency Exchange Rate"] && data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]) {
-            return {
-              price: Number.parseFloat(data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]),
-              timestamp: data["Realtime Currency Exchange Rate"]["6. Last Refreshed"] || new Date().toISOString(),
-            }
-          }
-          return null
-        }
+        // Kripto para için sembol kullanılır
+        basePrice = priceData.crypto[symbol as keyof typeof priceData.crypto] || 100
         break
-
       case "gold":
-        // Altın için XAU/USD veya XAU/TRY döviz kuru API'ını kullan
-        const [goldSymbol, goldCurrency] = formattedSymbol.split("/")
-        apiUrl = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${goldSymbol}&to_currency=${goldCurrency}&apikey=${ALPHA_VANTAGE_API_KEY}`
-        responseHandler = (data) => {
-          if (data["Realtime Currency Exchange Rate"] && data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]) {
-            return {
-              price: Number.parseFloat(data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]),
-              timestamp: data["Realtime Currency Exchange Rate"]["6. Last Refreshed"] || new Date().toISOString(),
-            }
-          }
-          return null
-        }
+        // Altın için tür kullanılır (sembol = tür)
+        basePrice = priceData.gold[symbol as keyof typeof priceData.gold] || 2300
         break
-
-      case "fund":
-        // Yatırım fonları için Time Series API'ını kullan (not: ücretsiz API'da sınırlı destek var)
-        apiUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${formattedSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`
-        responseHandler = (data) => {
-          if (data["Time Series (Daily)"]) {
-            // En son günün verilerini al
-            const dates = Object.keys(data["Time Series (Daily)"]).sort().reverse()
-            if (dates.length > 0) {
-              const latestDate = dates[0]
-              const latestData = data["Time Series (Daily)"][latestDate]
-              return {
-                price: Number.parseFloat(latestData["4. close"]),
-                timestamp: latestDate,
-              }
-            }
-          }
-          return null
-        }
+      case "forex":
+        // Döviz için tür kullanılır (sembol = tür)
+        basePrice = priceData.forex[symbol as keyof typeof priceData.forex] || 10
         break
-
+      case "stock":
+        // Hisse senedi için sembol kullanılır
+        basePrice = priceData.stock[symbol as keyof typeof priceData.stock] || 100
+        break
       default:
-        console.error(`Bilinmeyen yatırım türü: ${investmentType}`)
-        return null
+        basePrice = 100
     }
 
-    // API isteği gönder
-    const response = await fetch(apiUrl)
-    if (!response.ok) {
-      throw new Error(`API yanıtı başarısız: ${response.status} ${response.statusText}`)
-    }
+    // %2 rastgele değişim ekle (daha gerçekçi dalgalanma)
+    const randomFactor = 0.98 + Math.random() * 0.04
+    const price = basePrice * randomFactor
 
-    const data = await response.json()
-
-    // API limiti aşıldı mı kontrol et
-    if (data.Note && data.Note.includes("API call frequency")) {
-      console.warn("Alpha Vantage API çağrı limiti aşıldı:", data.Note)
-      return null
-    }
-
-    // API hatası var mı kontrol et
-    if (data.Error) {
-      console.error("Alpha Vantage API hatası:", data.Error)
-      return null
-    }
-
-    // Veriyi işle
-    const result = responseHandler(data)
-    if (result) {
-      console.log(`${formattedSymbol} için fiyat başarıyla çekildi:`, result.price)
-      return result
-    } else {
-      console.warn(`${formattedSymbol} için fiyat bulunamadı:`, data)
-      return null
-    }
+    return { price: Number(price.toFixed(2)) }
   } catch (error) {
     console.error(`Fiyat çekilirken hata: ${error}`)
     return null
   }
-}
-
-// Yatırım türleri
-export const investmentTypes = [
-  { value: "stock", label: "Hisse Senedi" },
-  { value: "forex", label: "Döviz" },
-  { value: "crypto", label: "Kripto Para" },
-  { value: "gold", label: "Altın" },
-  { value: "fund", label: "Yatırım Fonu" },
-]
-
-// Örnek semboller (kullanıcıya yardımcı olmak için)
-export const exampleSymbols = {
-  stock: ["EREGL", "TUPRS", "THYAO", "AAPL", "MSFT", "GOOGL"],
-  forex: ["USD/TRY", "EUR/TRY", "EUR/USD", "GBP/USD"],
-  crypto: ["BTC/USD", "ETH/USD", "BNB/USD", "XRP/USD"],
-  gold: ["XAU/USD", "XAU/TRY", "GRAM", "ONS"],
-  fund: ["AFT", "TI1", "TTE", "IST"],
 }
