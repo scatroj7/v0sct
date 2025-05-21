@@ -200,36 +200,49 @@ export function NexusDatePicker({
 
   return (
     <div className={`relative ${className}`} ref={containerRef}>
-      <div className="bg-gray-900 p-6 rounded-lg border border-gray-800 w-full max-w-md mx-auto shadow-lg">
-        <h2 className="text-cyan-500 font-bold text-lg mb-4 flex items-center">
-          <Calendar className="mr-2" size={18} />
-          NEXUS OS - Tarih Seçici
-        </h2>
+      {label ? (
+        <div className="bg-gray-900 p-6 rounded-lg border border-gray-800 w-full max-w-md mx-auto shadow-lg">
+          <h2 className="text-cyan-500 font-bold text-lg mb-4 flex items-center">
+            <Calendar className="mr-2" size={18} />
+            NEXUS OS - Tarih Seçici
+          </h2>
 
-        <div className="mb-4">
-          <label className="block text-gray-400 text-sm mb-2">{label}</label>
-          <div className="relative">
-            <div
-              className="bg-gray-800 border border-gray-700 rounded px-4 py-2 w-full text-white cursor-pointer flex justify-between items-center hover:border-cyan-500 transition-colors"
-              onClick={toggleCalendar}
-            >
-              <span>{value ? formatDate(value) : "Tarih seçiniz"}</span>
-              <Calendar size={16} className="text-cyan-500" />
+          <div className="mb-4">
+            <label className="block text-gray-400 text-sm mb-2">{label}</label>
+            <div className="relative">
+              <div
+                className="bg-gray-800 border border-gray-700 rounded px-4 py-2 w-full text-white cursor-pointer flex justify-between items-center hover:border-cyan-500 transition-colors"
+                onClick={toggleCalendar}
+              >
+                <span>{value ? formatDate(value) : "Tarih seçiniz"}</span>
+                <Calendar size={16} className="text-cyan-500" />
+              </div>
+              {isOpen && renderCalendar()}
             </div>
-            {isOpen && renderCalendar()}
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-md text-sm transition-colors"
+              onClick={handleApply}
+              type="button"
+            >
+              {buttonText}
+            </button>
           </div>
         </div>
-
-        <div className="flex justify-end">
-          <button
-            className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-md text-sm transition-colors"
-            onClick={handleApply}
-            type="button"
+      ) : (
+        <div className="relative">
+          <div
+            className="bg-background border border-input rounded px-3 py-2 w-full text-foreground cursor-pointer flex justify-between items-center hover:border-primary transition-colors"
+            onClick={toggleCalendar}
           >
-            {buttonText}
-          </button>
+            <span>{value ? formatDate(value) : "Tarih seçiniz"}</span>
+            <Calendar size={16} className="text-muted-foreground" />
+          </div>
+          {isOpen && renderCalendar()}
         </div>
-      </div>
+      )}
     </div>
   )
 }

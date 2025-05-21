@@ -19,9 +19,8 @@ import {
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, Plus, Trash2 } from "lucide-react"
-import { tr } from "date-fns/locale"
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns"
-import { DatePicker } from "@/components/ui/date-picker"
+import { NexusDatePicker } from "@/components/ui/nexus-date-picker"
 
 interface Transaction {
   id: string
@@ -542,10 +541,12 @@ const TransactionsTab = () => {
 
                 <div className="flex flex-col space-y-1.5">
                   <Label htmlFor="transactionDate">Tarih</Label>
-                  <DatePicker
-                    selected={newTransaction.date}
-                    onSelect={(date) => handleNewTransactionChange("date", date)}
-                    locale={tr}
+                  <NexusDatePicker
+                    value={newTransaction.date}
+                    onChange={(date) => handleNewTransactionChange("date", date)}
+                    className="p-0"
+                    label=""
+                    buttonText="Seç"
                   />
                 </div>
               </div>
