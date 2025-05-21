@@ -52,9 +52,11 @@ function Calendar({ className, classNames, showOutsideDays = true, locale = cust
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
         table: "w-full border-collapse",
+        head: "flex", // <-- Eklenen: thead elementinin display'ini flex yap
         head_row: "flex w-full justify-between whitespace-nowrap",
         head_cell:
           "text-muted-foreground rounded-md font-normal text-[0.75rem] text-center w-[50px] overflow-hidden flex-shrink-0 flex-grow-0",
+        tbody: "flex flex-col", // <-- Eklenen: tbody elementinin display'ini flex-col yap
         row: "flex w-full mt-2 justify-between",
         cell: "text-center text-sm p-0 relative h-9 w-[50px] flex-shrink-0 flex-grow-0 [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day: cn(
