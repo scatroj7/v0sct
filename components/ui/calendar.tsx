@@ -53,7 +53,7 @@ function Calendar({ className, classNames, showOutsideDays = true, locale = cust
         nav_button_next: "absolute right-1",
 
         // Tablo yapısını geçersiz kılmak için daha agresif yaklaşım
-        table: "w-full border-collapse block",
+        table: "w-full border-collapse block !important",
 
         // thead elementini flex yapıyoruz ve !important ile zorluyoruz
         head: "flex !important",
