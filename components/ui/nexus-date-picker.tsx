@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react"
-import { Portal } from "./portal"
 
 interface NexusDatePickerProps {
   value: Date | null
@@ -67,7 +66,8 @@ export function NexusDatePicker({
   }
 
   // Toggle calendar
-  const toggleCalendar = () => {
+  const toggleCalendar = (e: React.MouseEvent) => {
+    e.stopPropagation()
     if (!isOpen && value) {
       setCurrentDate(value)
     }
@@ -75,7 +75,8 @@ export function NexusDatePicker({
   }
 
   // Handle apply button
-  const handleApply = () => {
+  const handleApply = (e: React.MouseEvent) => {
+    e.stopPropagation()
     if (onApply) {
       onApply()
     }
@@ -96,18 +97,22 @@ export function NexusDatePicker({
     }
   }, [isOpen])
 
-  // Calculate position for the calendar
-  const getCalendarPosition = () => {
-    if (!containerRef.current) return {}
-
-    const rect = containerRef.current.getBoundingClientRect()
-    return {
-      top: rect.bottom + window.scrollY,
-      left: rect.left + window.scrollX,
+  // Close when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node) && isOpen) {
+        // Eğer tıklama takvim dışında bir yere yapıldıysa kapat
+        setIsOpen(false)
+      }
     }
-  }
 
-  // Render calendar
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isOpen])
+
+  // Render calendar directly in the component instead of using Portal
   const renderCalendar = () => {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
@@ -161,40 +166,31 @@ export function NexusDatePicker({
       )
     }
 
-    const position = getCalendarPosition()
-
     return (
-      <Portal>
-        {/* Overlay */}
-        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-
-        {/* Calendar */}
-        <div
-          className="absolute bg-gray-900 border border-gray-700 rounded-lg p-4 shadow-lg z-50"
-          style={{ top: position.top, left: position.left }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex justify-between items-center mb-4">
-            <button className="text-cyan-500 hover:text-cyan-400 p-1" onClick={prevMonth} type="button">
-              <ChevronLeft size={16} />
-            </button>
-            <div className="text-white font-medium">
-              {monthNames[month]} {year}
-            </div>
-            <button className="text-cyan-500 hover:text-cyan-400 p-1" onClick={nextMonth} type="button">
-              <ChevronRight size={16} />
-            </button>
+      <div
+        className="absolute top-full left-0 mt-1 bg-gray-900 border border-gray-700 rounded-lg p-4 shadow-lg z-50"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <button className="text-cyan-500 hover:text-cyan-400 p-1" onClick={prevMonth} type="button">
+            <ChevronLeft size={16} />
+          </button>
+          <div className="text-white font-medium">
+            {monthNames[month]} {year}
           </div>
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {["Pz", "Pt", "Sa", "Çr", "Pr", "Cu", "Ct"].map((day, index) => (
-              <div key={index} className="w-8 h-8 flex items-center justify-center text-gray-400 text-xs">
-                {day}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1 text-gray-200">{days}</div>
+          <button className="text-cyan-500 hover:text-cyan-400 p-1" onClick={nextMonth} type="button">
+            <ChevronRight size={16} />
+          </button>
         </div>
-      </Portal>
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {["Pz", "Pt", "Sa", "Çr", "Pr", "Cu", "Ct"].map((day, index) => (
+            <div key={index} className="w-8 h-8 flex items-center justify-center text-gray-400 text-xs">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-gray-200">{days}</div>
+      </div>
     )
   }
 
