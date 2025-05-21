@@ -4,6 +4,7 @@ import type * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker } from "react-day-picker"
 import { tr } from "date-fns/locale"
+import { useCalendarDomFix } from "@/hooks/use-calendar-dom-fix"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -33,6 +34,9 @@ const customTrLocale = {
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
 function Calendar({ className, classNames, showOutsideDays = true, locale = customTrLocale, ...props }: CalendarProps) {
+  // Use our custom hook to fix the DOM after render
+  useCalendarDomFix()
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -52,7 +56,7 @@ function Calendar({ className, classNames, showOutsideDays = true, locale = cust
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
 
-        // Temel sınıflar - globals.css'teki agresif stillerle override edilecek
+        // Keep basic styling for non-table elements
         table: "w-full border-collapse space-y-1",
         head_row: "flex",
         head_cell: "text-muted-foreground rounded-md font-normal text-[0.8rem]",
