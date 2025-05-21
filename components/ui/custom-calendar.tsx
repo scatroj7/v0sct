@@ -1,9 +1,10 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getCalendarDays, getWeekdayNames, isSameDay } from "@/lib/calendar-utils"
 
 export interface CustomCalendarProps {
   selected?: Date | null
@@ -12,13 +13,68 @@ export interface CustomCalendarProps {
   locale?: string
 }
 
+// Takvim günlerini hesaplayan yardımcı fonksiyon
+const getCalendarDays = (year: number, month: number): (Date | null)[] => {
+  const date = new Date(year, month, 1)
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+  // Haftanın ilk günü: Pazartesi (1), Salı (2), ..., Pazar (0)
+  let firstDayOfWeek = date.getDay() // 0 (Pazar) - 6 (Cumartesi)
+  if (firstDayOfWeek === 0)
+    firstDayOfWeek = 6 // Pazar'ı haftanın son günü yap
+  else firstDayOfWeek-- // Pazartesi'yi 0, Salı'yı 1 yap
+
+  const calendarDays: (Date | null)[] = []
+
+  // Önceki ayın günlerini ekle (başlangıç boşlukları)
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    calendarDays.push(null)
+  }
+
+  // Mevcut ayın günlerini ekle
+  for (let i = 1; i <= daysInMonth; i++) {
+    calendarDays.push(new Date(year, month, i))
+  }
+
+  // Sonraki ayın günlerini ekle (son boşluklar)
+  const totalCells = 42 // 6 hafta * 7 gün = 42 hücre
+  const remainingCells = totalCells - calendarDays.length
+  for (let i = 0; i < remainingCells; i++) {
+    calendarDays.push(null)
+  }
+
+  return calendarDays
+}
+
+// Gün isimlerini getiren yardımcı fonksiyon
+const getWeekdayNames = (locale = "tr-TR", format: "narrow" | "short" | "long" = "narrow"): string[] => {
+  const days: string[] = []
+  const date = new Date(2023, 0, 2) // 2 Ocak 2023 Pazartesi
+
+  for (let i = 0; i < 7; i++) {
+    days.push(date.toLocaleDateString(locale, { weekday: format }))
+    date.setDate(date.getDate() + 1)
+  }
+
+  return days
+}
+
+// İki tarihin aynı gün olup olmadığını kontrol eden yardımcı fonksiyon
+const isSameDay = (date1: Date, date2: Date): boolean => {
+  return (
+    date1.getDate() === date2.getDate() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getFullYear() === date2.getFullYear()
+  )
+}
+
 export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR" }: CustomCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [days, setDays] = useState<(Date | null)[]>([])
-  const today = new Date() // Store today's date for comparison
+  const today = new Date() // Bugünün tarihini sakla
 
-  // Initialize with selected date if provided
+  // Seçili tarih varsa, o aya git
   useEffect(() => {
     if (selected) {
       setCurrentMonth(selected.getMonth())
@@ -26,53 +82,51 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
     }
   }, [])
 
-  // Update calendar days when month or year changes
+  // Ay veya yıl değiştiğinde takvim günlerini güncelle
   useEffect(() => {
     setDays(getCalendarDays(currentYear, currentMonth))
   }, [currentYear, currentMonth])
 
-  // Get weekday names in Turkish
+  // Türkçe gün isimleri
   const weekdayNames = getWeekdayNames(locale, "narrow")
 
-  // Get month name in Turkish
+  // Türkçe ay ismi
   const monthName = new Date(currentYear, currentMonth).toLocaleDateString(locale, { month: "long" })
 
-  // Navigate to previous month
+  // Önceki aya git
   const handlePrevMonth = (e: React.MouseEvent) => {
-    // Stop event propagation to prevent the popover from closing
     e.preventDefault()
     e.stopPropagation()
-    
+
     if (currentMonth === 0) {
       setCurrentYear(currentYear - 1)
-      setCurrentMonth(11) // December
+      setCurrentMonth(11) // Aralık
     } else {
       setCurrentMonth(currentMonth - 1)
     }
   }
 
-  // Navigate to next month
+  // Sonraki aya git
   const handleNextMonth = (e: React.MouseEvent) => {
-    // Stop event propagation to prevent the popover from closing
     e.preventDefault()
     e.stopPropagation()
-    
+
     if (currentMonth === 11) {
       setCurrentYear(currentYear + 1)
-      setCurrentMonth(0) // January
+      setCurrentMonth(0) // Ocak
     } else {
       setCurrentMonth(currentMonth + 1)
     }
   }
 
-  // Handle day selection
+  // Gün seçildiğinde
   const handleDayClick = (day: Date | null) => {
     if (day && onSelect) {
       onSelect(day)
     }
   }
 
-  // Check if a date is today
+  // Bir tarihin bugün olup olmadığını kontrol et
   const isToday = (date: Date | null): boolean => {
     if (!date) return false
     return (
@@ -83,16 +137,14 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
   }
 
   return (
-    <div className={cn("p-3 bg-background rounded-lg shadow-sm", className)}>
-      {/* Calendar Header and Navigation */}
+    <div className={cn("p-4 bg-background rounded-lg shadow-lg", className)} onClick={(e) => e.stopPropagation()}>
+      {/* Takvim Başlığı ve Navigasyon */}
       <div className="flex justify-between items-center mb-4">
         <button
           type="button"
           onClick={handlePrevMonth}
           className="p-2 rounded-full hover:bg-muted transition-colors duration-200"
           aria-label="Önceki Ay"
-          // Add mousedown event to prevent focus which can trigger popover close
-          onMouseDown={(e) => e.preventDefault()}
         >
           <ChevronLeft className="h-5 w-5 text-muted-foreground" />
         </button>
@@ -104,14 +156,12 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
           onClick={handleNextMonth}
           className="p-2 rounded-full hover:bg-muted transition-colors duration-200"
           aria-label="Sonraki Ay"
-          // Add mousedown event to prevent focus which can trigger popover close
-          onMouseDown={(e) => e.preventDefault()}
         >
           <ChevronRight className="h-5 w-5 text-muted-foreground" />
         </button>
       </div>
 
-      {/* Weekday Headers */}
+      {/* Gün Başlıkları */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {weekdayNames.map((name, index) => (
           <div
@@ -123,7 +173,7 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
         ))}
       </div>
 
-      {/* Calendar Days */}
+      {/* Takvim Günleri */}
       <div className="grid grid-cols-7 gap-1">
         {days.map((day, index) => {
           const isCurrentDay = isToday(day)
@@ -137,10 +187,10 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
               disabled={!day}
               className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center text-sm transition-colors duration-200",
-                !day && "text-muted-foreground/40 cursor-not-allowed", // Invalid days
-                day && "text-foreground hover:bg-primary/80 hover:text-primary-foreground", // Valid days
-                isSelectedDay && "bg-primary text-primary-foreground font-medium", // Selected day
-                isCurrentDay && !isSelectedDay && "border-2 border-primary text-primary font-medium", // Today (not selected)
+                !day && "text-muted-foreground/40 cursor-not-allowed", // Geçersiz günler
+                day && "text-foreground hover:bg-primary/80 hover:text-primary-foreground", // Geçerli günler
+                isSelectedDay && "bg-primary text-primary-foreground font-medium", // Seçili gün
+                isCurrentDay && !isSelectedDay && "border-2 border-primary text-primary font-medium", // Bugün (seçili değilse)
               )}
             >
               {day ? day.getDate() : ""}
