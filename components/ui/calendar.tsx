@@ -11,12 +11,11 @@ import { buttonVariants } from "@/components/ui/button"
 // Özel Türkçe locale tanımı - daha ayırt edici gün kısaltmaları için
 const customTrLocale = {
   ...tr,
-  formatters: {
-    ...tr.formatters,
-    // Özel gün kısaltmaları
-    E: (date: Date) => {
+  localize: {
+    ...tr.localize,
+    day: (n: number, _options?: any) => {
       const days = ["Pz", "Pt", "Sa", "Ça", "Pe", "Cu", "Ct"]
-      return days[date.getDay()]
+      return days[n]
     },
   },
 }
@@ -30,7 +29,6 @@ function Calendar({ className, classNames, showOutsideDays = true, locale = cust
       className={cn("p-3", className)}
       locale={locale}
       firstDayOfWeek={1} // 1 = Pazartesi (date-fns'e göre)
-      weekdayFormat="E" // Özel formatımızı kullan
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
