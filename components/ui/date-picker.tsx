@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon } from 'lucide-react'
 import { tr } from "date-fns/locale"
 
 import { cn } from "@/lib/utils"
@@ -28,8 +28,21 @@ export function DatePicker({ selected, onSelect, locale = tr, className }: DateP
           {selected ? format(selected, "PPP", { locale }) : "Tarih seçin"}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto min-w-[350px] p-0" align="start">
-        <CustomCalendar selected={selected} onSelect={onSelect} locale="tr-TR" />
+      <PopoverContent 
+        className="w-auto min-w-[350px] p-0" 
+        align="start"
+        // Add this to prevent closing when clicking inside
+        onInteractOutside={(e) => {
+          // Only close if clicking outside the popover
+          const target = e.target as HTMLElement
+          if (target.closest('.custom-calendar-container')) {
+            e.preventDefault()
+          }
+        }}
+      >
+        <div className="custom-calendar-container" onClick={(e) => e.stopPropagation()}>
+          <CustomCalendar selected={selected} onSelect={onSelect} locale="tr-TR" />
+        </div>
       </PopoverContent>
     </Popover>
   )

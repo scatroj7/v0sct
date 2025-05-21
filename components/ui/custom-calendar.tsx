@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { getCalendarDays, getWeekdayNames, isSameDay } from "@/lib/calendar-utils"
 
@@ -38,7 +38,11 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
   const monthName = new Date(currentYear, currentMonth).toLocaleDateString(locale, { month: "long" })
 
   // Navigate to previous month
-  const handlePrevMonth = () => {
+  const handlePrevMonth = (e: React.MouseEvent) => {
+    // Stop event propagation to prevent the popover from closing
+    e.preventDefault()
+    e.stopPropagation()
+    
     if (currentMonth === 0) {
       setCurrentYear(currentYear - 1)
       setCurrentMonth(11) // December
@@ -48,7 +52,11 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
   }
 
   // Navigate to next month
-  const handleNextMonth = () => {
+  const handleNextMonth = (e: React.MouseEvent) => {
+    // Stop event propagation to prevent the popover from closing
+    e.preventDefault()
+    e.stopPropagation()
+    
     if (currentMonth === 11) {
       setCurrentYear(currentYear + 1)
       setCurrentMonth(0) // January
@@ -83,6 +91,8 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
           onClick={handlePrevMonth}
           className="p-2 rounded-full hover:bg-muted transition-colors duration-200"
           aria-label="Önceki Ay"
+          // Add mousedown event to prevent focus which can trigger popover close
+          onMouseDown={(e) => e.preventDefault()}
         >
           <ChevronLeft className="h-5 w-5 text-muted-foreground" />
         </button>
@@ -94,6 +104,8 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
           onClick={handleNextMonth}
           className="p-2 rounded-full hover:bg-muted transition-colors duration-200"
           aria-label="Sonraki Ay"
+          // Add mousedown event to prevent focus which can trigger popover close
+          onMouseDown={(e) => e.preventDefault()}
         >
           <ChevronRight className="h-5 w-5 text-muted-foreground" />
         </button>
