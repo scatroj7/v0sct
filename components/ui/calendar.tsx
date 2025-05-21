@@ -13,9 +13,19 @@ const customTrLocale = {
   ...tr,
   localize: {
     ...tr.localize,
-    day: (n: number, _options?: any) => {
-      const days = ["Pz", "Pt", "Sa", "Ça", "Pe", "Cu", "Ct"]
-      return days[n]
+    day: (n: number, options?: { width?: string }) => {
+      const narrow = ["P", "P", "S", "Ç", "P", "C", "C"]
+      const short = ["Pz", "Pt", "Sa", "Ça", "Pe", "Cu", "Ct"]
+      const wide = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"]
+
+      switch (options?.width) {
+        case "narrow":
+          return narrow[n]
+        case "wide":
+          return wide[n]
+        default:
+          return short[n]
+      }
     },
   },
 }
