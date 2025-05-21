@@ -17,7 +17,6 @@ function Calendar({ className, classNames, showOutsideDays = true, locale = tr, 
       className={cn("p-3", className)}
       locale={locale}
       firstDayOfWeek={1} // 1 = Pazartesi (date-fns'e göre)
-      weekdayFormat="eeeeee" // Kısa gün adları için
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
@@ -30,12 +29,12 @@ function Calendar({ className, classNames, showOutsideDays = true, locale = tr, 
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
-        table: "w-full border-collapse table-fixed", // table-fixed ekledim
-        head_row: "w-full",
-        head_cell: "text-muted-foreground rounded-md font-normal text-[0.8rem] text-center", // w-9'u kaldırdım
-        row: "w-full mt-2",
-        cell: "text-center text-sm p-0 relative h-9 [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day: cn(buttonVariants({ variant: "ghost" }), "h-9 p-0 font-normal aria-selected:opacity-100"), // w-9'u kaldırdım
+        table: "w-full border-collapse", // table-fixed'i kaldırdım
+        head_row: "flex w-full justify-between", // flex ve justify-between geri geldi
+        head_cell: "text-muted-foreground rounded-md font-normal text-[0.8rem] text-center w-10",
+        row: "flex w-full mt-2 justify-between", // flex ve justify-between geri geldi
+        cell: "text-center text-sm p-0 relative h-9 w-10 [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-10 p-0 font-normal aria-selected:opacity-100"),
         day_range_end: "day-range-end",
         day_selected:
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
