@@ -4,6 +4,9 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { SessionProvider } from "./providers/session-provider"
 
+// react-day-picker/dist/style.css import'u varsa, bu satırı silin
+// import 'react-day-picker/dist/style.css';
+
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {

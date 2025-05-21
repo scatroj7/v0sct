@@ -89,39 +89,5 @@
   color: #3b82f6;
 }
 
-/* react-day-picker tablo stillerini geçersiz kılma */
-.rdp table {
-  display: block !important;
-}
-.rdp thead {
-  display: flex !important;
-}
-.rdp thead tr {
-  display: flex !important;
-  width: 100% !important;
-  justify-content: space-between !important;
-}
-.rdp th {
-  display: flex !important;
-  width: 50px !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-}
-.rdp tbody {
-  display: flex !important;
-  flex-direction: column !important;
-}
-.rdp tbody tr {
-  display: flex !important;
-  width: 100% !important;
-  justify-content: space-between !important;
-}
-.rdp td {
-  display: flex !important;
-  width: 50px !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-}
-
-/* Eğer globals.css dosyasında react-day-picker/dist/style.css import varsa, aşağıdaki satırı bulup yorum satırına alın veya silin */
+/* react-day-picker/dist/style.css import'u varsa, bu satırı silin veya yorum satırına alın */
 /* @import 'react-day-picker/dist/style.css'; */
