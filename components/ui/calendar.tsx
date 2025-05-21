@@ -51,18 +51,35 @@ function Calendar({ className, classNames, showOutsideDays = true, locale = cust
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
-        table: "w-full border-collapse",
-        head: "flex", // <-- Eklenen: thead elementinin display'ini flex yap
-        head_row: "flex w-full justify-between whitespace-nowrap",
+
+        // Tablo yapısını geçersiz kılmak için daha agresif yaklaşım
+        table: "w-full border-collapse block",
+
+        // thead elementini flex yapıyoruz ve !important ile zorluyoruz
+        head: "flex !important",
+
+        // tr elementini flex yapıyoruz ve !important ile zorluyoruz
+        head_row: "flex w-full justify-between whitespace-nowrap !important",
+
+        // th elementlerini flex item olarak belirliyoruz ve genişliği zorluyoruz
         head_cell:
-          "text-muted-foreground rounded-md font-normal text-[0.75rem] text-center w-[50px] overflow-hidden flex-shrink-0 flex-grow-0",
-        tbody: "flex flex-col", // <-- Eklenen: tbody elementinin display'ini flex-col yap
-        row: "flex w-full mt-2 justify-between",
-        cell: "text-center text-sm p-0 relative h-9 w-[50px] flex-shrink-0 flex-grow-0 [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+          "text-muted-foreground rounded-md font-normal text-[0.75rem] text-center w-[50px] overflow-hidden flex-shrink-0 flex-grow-0 !important",
+
+        // tbody elementini flex-col yapıyoruz ve !important ile zorluyoruz
+        tbody: "flex flex-col !important",
+
+        // tr elementlerini flex yapıyoruz ve !important ile zorluyoruz
+        row: "flex w-full mt-2 justify-between !important",
+
+        // td elementlerini flex item olarak belirliyoruz ve genişliği zorluyoruz
+        cell: "text-center text-sm p-0 relative h-9 w-[50px] flex-shrink-0 flex-grow-0 !important [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+
+        // Gün butonlarının genişliğini zorluyoruz
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-[50px] p-0 font-normal aria-selected:opacity-100 flex-shrink-0 flex-grow-0",
+          "h-9 w-[50px] p-0 font-normal aria-selected:opacity-100 flex-shrink-0 flex-grow-0 !important",
         ),
+
         day_range_end: "day-range-end",
         day_selected:
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
