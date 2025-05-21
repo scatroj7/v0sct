@@ -2,8 +2,38 @@ import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import { fetchLatestPrice } from "@/app/lib/api-services/price-service-v2"
 
+// Veritabanı URL'sini al
+const getDatabaseUrl = () => {
+  // Tüm olası veritabanı URL'lerini kontrol et
+  const dbUrl =
+    process.env.POSTGRES_URL ||
+    process.env.NEON_NEON_DATABASE_URL ||
+    process.env.DATABASE_URL ||
+    process.env.NEON_POSTGRES_URL ||
+    process.env.NEON_NEON_DATABASE_URL
+
+  if (!dbUrl) {
+    console.error("Veritabanı URL'si bulunamadı! Mevcut çevresel değişkenler:", {
+      hasPgUrl: !!process.env.POSTGRES_URL,
+      hasDBUrl: !!process.env.DATABASE_URL,
+      hasNeonDbUrl: !!process.env.NEON_DATABASE_URL,
+      hasNeonPgUrl: !!process.env.NEON_POSTGRES_URL,
+      hasNeonNeonDbUrl: !!process.env.NEON_NEON_DATABASE_URL,
+    })
+
+    // Test modunda çalışmak için sabit bir URL döndür
+    if (process.env.NODE_ENV !== "production") {
+      return "postgres://test:test@localhost:5432/test"
+    }
+
+    throw new Error("Veritabanı URL'si bulunamadı!")
+  }
+
+  return dbUrl
+}
+
 // Veritabanı bağlantısı
-const sql = neon(process.env.NEON_NEON_DATABASE_URL!)
+const sql = neon(getDatabaseUrl())
 
 export async function GET(request: NextRequest) {
   try {
