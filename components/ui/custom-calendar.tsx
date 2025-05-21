@@ -1,7 +1,4 @@
 "use client"
-
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -80,7 +77,7 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
       setCurrentMonth(selected.getMonth())
       setCurrentYear(selected.getFullYear())
     }
-  }, [])
+  }, [selected])
 
   // Ay veya yıl değiştiğinde takvim günlerini güncelle
   useEffect(() => {
@@ -93,11 +90,8 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
   // Türkçe ay ismi
   const monthName = new Date(currentYear, currentMonth).toLocaleDateString(locale, { month: "long" })
 
-  // Önceki aya git
-  const handlePrevMonth = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-
+  // Önceki aya git - Doğrudan fonksiyon olarak tanımla
+  const handlePrevMonth = () => {
     if (currentMonth === 0) {
       setCurrentYear(currentYear - 1)
       setCurrentMonth(11) // Aralık
@@ -106,11 +100,8 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
     }
   }
 
-  // Sonraki aya git
-  const handleNextMonth = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-
+  // Sonraki aya git - Doğrudan fonksiyon olarak tanımla
+  const handleNextMonth = () => {
     if (currentMonth === 11) {
       setCurrentYear(currentYear + 1)
       setCurrentMonth(0) // Ocak
@@ -143,7 +134,7 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
         <button
           type="button"
           onClick={handlePrevMonth}
-          className="p-2 rounded-full hover:bg-muted transition-colors duration-200"
+          className="p-2 rounded-full hover:bg-muted transition-colors duration-200 cursor-pointer"
           aria-label="Önceki Ay"
         >
           <ChevronLeft className="h-5 w-5 text-muted-foreground" />
@@ -154,7 +145,7 @@ export function CustomCalendar({ selected, onSelect, className, locale = "tr-TR"
         <button
           type="button"
           onClick={handleNextMonth}
-          className="p-2 rounded-full hover:bg-muted transition-colors duration-200"
+          className="p-2 rounded-full hover:bg-muted transition-colors duration-200 cursor-pointer"
           aria-label="Sonraki Ay"
         >
           <ChevronRight className="h-5 w-5 text-muted-foreground" />
