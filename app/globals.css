@@ -89,5 +89,64 @@
   color: #3b82f6;
 }
 
-/* react-day-picker/dist/style.css import'u varsa, bu satırı silin veya yorum satırına alın */
+/* react-day-picker için tamamen yeni ve daha agresif stil yaklaşımı */
+@layer components {
+  /* Tablo elementlerini doğrudan hedefle */
+  .rdp table {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .rdp thead {
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  .rdp thead tr {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .rdp th {
+    display: flex !important;
+    width: 50px !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .rdp tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .rdp tbody tr {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .rdp td {
+    display: flex !important;
+    width: 50px !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  /* Gün butonları için stil */
+  .rdp button {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+}
+
+/* react-day-picker/dist/style.css import'u varsa, bu satırı silin */
 /* @import 'react-day-picker/dist/style.css'; */
