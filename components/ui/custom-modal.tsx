@@ -9,12 +9,13 @@ import { cn } from "@/lib/utils"
 interface CustomModalProps {
   isOpen: boolean
   onClose: () => void
+  onOpen: () => void
   children: React.ReactNode
   trigger: React.ReactNode
   className?: string
 }
 
-export function CustomModal({ isOpen, onClose, children, trigger, className }: CustomModalProps) {
+export function CustomModal({ isOpen, onClose, onOpen, children, trigger, className }: CustomModalProps) {
   const [mounted, setMounted] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
 
@@ -45,9 +46,6 @@ export function CustomModal({ isOpen, onClose, children, trigger, className }: C
     }
   }, [isOpen, onClose])
 
-  // Trigger elementini render edelim
-  const triggerElement = <div onClick={() => (isOpen ? onClose() : onClose())}>{trigger}</div>
-
   // Modal içeriğini render edelim
   const modalContent =
     isOpen && mounted
@@ -68,7 +66,7 @@ export function CustomModal({ isOpen, onClose, children, trigger, className }: C
 
   return (
     <>
-      {triggerElement}
+      <div onClick={onOpen}>{trigger}</div>
       {modalContent}
     </>
   )

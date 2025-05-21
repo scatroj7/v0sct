@@ -29,11 +29,11 @@ export function DatePicker({ selected, onSelect, locale = tr, className }: DateP
     <CustomModal
       isOpen={isOpen}
       onClose={() => setIsOpen(false)}
+      onOpen={() => setIsOpen(true)}
       trigger={
         <Button
           type="button"
           variant={"outline"}
-          onClick={() => setIsOpen(true)}
           className={cn("w-full justify-start text-left font-normal", !selected && "text-muted-foreground", className)}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
