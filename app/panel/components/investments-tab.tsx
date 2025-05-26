@@ -76,6 +76,9 @@ export default function InvestmentsTab() {
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
+  // ✅ REACT STATE İLE HOVER KONTROLÜ - EN AGRESİF ÇÖZÜM
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null)
+
   const [formData, setFormData] = useState({
     name: "",
     category: "crypto",
@@ -95,6 +98,7 @@ export default function InvestmentsTab() {
     console.log("=== HOVER DEBUG ===")
     console.log("Table found:", !!table)
     console.log("Rows found:", rows.length)
+    console.log("Current hoveredRowId:", hoveredRowId)
 
     rows.forEach((row, index) => {
       const tds = row.querySelectorAll("td")
@@ -113,44 +117,20 @@ export default function InvestmentsTab() {
     })
   }
 
-  // Test hover fonksiyonu - JavaScript ile zorla hover simülasyonu
+  // Test hover fonksiyonu - React state ile test
   const testHover = () => {
-    const rows = document.querySelectorAll(".investments-table tbody tr")
-    console.log("=== TEST HOVER ===")
+    console.log("=== TEST HOVER WITH REACT STATE ===")
+    if (investments.length > 0) {
+      const firstInvestmentId = investments[0].id
+      console.log("Setting hoveredRowId to:", firstInvestmentId)
+      setHoveredRowId(firstInvestmentId)
 
-    rows.forEach((row, index) => {
-      const tds = row.querySelectorAll("td")
-      console.log(`Testing Row ${index}...`)
-
-      // TR'ye renk uygula - Daha agresif yaklaşım
-      const rowElement = row as HTMLElement
-
-      // Sürekli renk kontrolü için interval
-      const forceColor = () => {
-        rowElement.style.setProperty("background-color", "rgb(239, 246, 255)", "important")
-        rowElement.style.setProperty("background", "rgb(239, 246, 255)", "important")
-        rowElement.classList.add("force-hover-bg")
-
-        tds.forEach((td) => {
-          const tdElement = td as HTMLElement
-          tdElement.style.setProperty("background-color", "rgb(239, 246, 255)", "important")
-          tdElement.style.setProperty("background", "rgb(239, 246, 255)", "important")
-          tdElement.classList.add("force-hover-bg")
-        })
-      }
-
-      // İlk uygulama
-      forceColor()
-
-      // 100ms boyunca sürekli uygula
-      const interval = setInterval(forceColor, 10)
-      setTimeout(() => clearInterval(interval), 1000)
-
-      console.log(`Row ${index} HOVER:`, {
-        computedBg: getComputedStyle(row).backgroundColor,
-        inlineStyle: rowElement.style.cssText,
-      })
-    })
+      // 3 saniye sonra sıfırla
+      setTimeout(() => {
+        console.log("Clearing hoveredRowId")
+        setHoveredRowId(null)
+      }, 3000)
+    }
   }
 
   // Kategoriye göre filtrelenmiş yatırımlar
@@ -192,6 +172,7 @@ export default function InvestmentsTab() {
         case "profit_percentage":
           const aPct = a.profit_percentage || 0
           const bPct = b.profit_percentage || 0
+          comparison = aPct - bPct
           break
         default:
           comparison = 0
@@ -636,65 +617,6 @@ export default function InvestmentsTab() {
   // Kategori bazında sembol alanının gösterilip gösterilmeyeceğini belirle
   const showSymbolField = formData.category === "crypto" || formData.category === "stock"
 
-  // JavaScript ile hover efekti - CSS çalışmıyorsa
-  const handleRowMouseEnter = (e: React.MouseEvent<HTMLTableRowElement>) => {
-    console.log("Mouse Enter triggered!")
-    const row = e.currentTarget
-    const tds = row.querySelectorAll("td")
-
-    // TR'ye renk uygula - Tüm olası CSS property'lerini set et
-    row.style.setProperty("background-color", "rgb(239, 246, 255)", "important")
-    row.style.setProperty("background", "rgb(239, 246, 255)", "important")
-    row.style.setProperty("backgroundColor", "rgb(239, 246, 255)", "important")
-
-    // Tüm Tailwind sınıflarını kaldır ve yeni sınıf ekle
-    row.classList.remove("bg-white", "bg-transparent", "bg-inherit")
-    row.classList.add("force-hover-bg")
-
-    // Her TD'ye de renk uygula - Tüm olası CSS property'lerini set et
-    tds.forEach((td) => {
-      const tdElement = td as HTMLElement
-      tdElement.style.setProperty("background-color", "rgb(239, 246, 255)", "important")
-      tdElement.style.setProperty("background", "rgb(239, 246, 255)", "important")
-      tdElement.style.setProperty("backgroundColor", "rgb(239, 246, 255)", "important")
-
-      // Tüm Tailwind sınıflarını kaldır ve yeni sınıf ekle
-      tdElement.classList.remove("bg-white", "bg-transparent", "bg-inherit")
-      tdElement.classList.add("force-hover-bg")
-    })
-
-    // Zorla repaint tetikle
-    row.style.display = "none"
-    row.offsetHeight // trigger reflow
-    row.style.display = ""
-  }
-
-  const handleRowMouseLeave = (e: React.MouseEvent<HTMLTableRowElement>) => {
-    console.log("Mouse Leave triggered!")
-    const row = e.currentTarget
-    const tds = row.querySelectorAll("td")
-
-    // TR'den rengi kaldır - Tüm olası CSS property'lerini temizle
-    row.style.removeProperty("background-color")
-    row.style.removeProperty("background")
-    row.style.removeProperty("backgroundColor")
-    row.classList.remove("force-hover-bg")
-
-    // Her TD'den de rengi kaldır - Tüm olası CSS property'lerini temizle
-    tds.forEach((td) => {
-      const tdElement = td as HTMLElement
-      tdElement.style.removeProperty("background-color")
-      tdElement.style.removeProperty("background")
-      tdElement.style.removeProperty("backgroundColor")
-      tdElement.classList.remove("force-hover-bg")
-    })
-
-    // Zorla repaint tetikle
-    row.style.display = "none"
-    row.offsetHeight // trigger reflow
-    row.style.display = ""
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -705,7 +627,7 @@ export default function InvestmentsTab() {
             Debug Hover
           </Button>
           <Button variant="outline" size="sm" onClick={testHover}>
-            Test Hover
+            Test React State
           </Button>
 
           {lastUpdated && (
@@ -982,76 +904,106 @@ export default function InvestmentsTab() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedInvestments.map((investment) => (
-                        <tr
-                          key={investment.id}
-                          className="border-b transition-colors duration-200 hover-row"
-                          onMouseEnter={handleRowMouseEnter}
-                          onMouseLeave={handleRowMouseLeave}
-                          style={{ cursor: "pointer" }}
-                        >
-                          <td className="py-2 px-2">
-                            <div className="font-medium">{investment.name}</div>
-                            {investment.symbol && investment.symbol !== investment.name && (
-                              <div className="text-xs text-gray-500">{investment.symbol}</div>
-                            )}
-                          </td>
-                          <td className="py-2 px-2">
-                            <span
-                              className={`px-2 py-1 rounded text-xs text-white ${getCategoryColor(
-                                investment.category,
-                              )}`}
-                            >
-                              {investmentCategories.find((cat) => cat.value === investment.category)?.label}
-                            </span>
-                          </td>
-                          <td className="py-2 px-2">{formatAmount(investment.amount)}</td>
-                          <td className="py-2 px-2">{formatCurrency(investment.purchase_price)}</td>
-                          <td className="py-2 px-2">
-                            {investment.current_price ? formatCurrency(investment.current_price) : "-"}
-                          </td>
-                          <td className="py-2 px-2">
-                            {investment.profit ? (
-                              <div className={getReturnColor(investment.profit)}>
-                                {formatCurrency(investment.profit)}
-                                {investment.profit_percentage && (
-                                  <span className="ml-1">({formatPercentage(investment.profit_percentage)})</span>
-                                )}
+                      {sortedInvestments.map((investment) => {
+                        // ✅ REACT STATE İLE HOVER KONTROLÜ - HER SATIR İÇİN INLINE STYLE
+                        const isHovered = hoveredRowId === investment.id
+                        const hoverStyle = isHovered ? { backgroundColor: "rgb(239, 246, 255)" } : {}
+
+                        return (
+                          <tr
+                            key={investment.id}
+                            className="border-b transition-colors duration-200"
+                            onMouseEnter={() => {
+                              console.log("Mouse Enter - Setting hoveredRowId to:", investment.id)
+                              setHoveredRowId(investment.id)
+                            }}
+                            onMouseLeave={() => {
+                              console.log("Mouse Leave - Clearing hoveredRowId")
+                              setHoveredRowId(null)
+                            }}
+                            style={{ cursor: "pointer", ...hoverStyle }} // ✅ TR için inline style
+                          >
+                            <td className="py-2 px-2" style={hoverStyle}>
+                              {" "}
+                              {/* ✅ TD için inline style */}
+                              <div className="font-medium">{investment.name}</div>
+                              {investment.symbol && investment.symbol !== investment.name && (
+                                <div className="text-xs text-gray-500">{investment.symbol}</div>
+                              )}
+                            </td>
+                            <td className="py-2 px-2" style={hoverStyle}>
+                              {" "}
+                              {/* ✅ TD için inline style */}
+                              <span
+                                className={`px-2 py-1 rounded text-xs text-white ${getCategoryColor(
+                                  investment.category,
+                                )}`}
+                              >
+                                {investmentCategories.find((cat) => cat.value === investment.category)?.label}
+                              </span>
+                            </td>
+                            <td className="py-2 px-2" style={hoverStyle}>
+                              {" "}
+                              {/* ✅ TD için inline style */}
+                              {formatAmount(investment.amount)}
+                            </td>
+                            <td className="py-2 px-2" style={hoverStyle}>
+                              {" "}
+                              {/* ✅ TD için inline style */}
+                              {formatCurrency(investment.purchase_price)}
+                            </td>
+                            <td className="py-2 px-2" style={hoverStyle}>
+                              {" "}
+                              {/* ✅ TD için inline style */}
+                              {investment.current_price ? formatCurrency(investment.current_price) : "-"}
+                            </td>
+                            <td className="py-2 px-2" style={hoverStyle}>
+                              {" "}
+                              {/* ✅ TD için inline style */}
+                              {investment.profit ? (
+                                <div className={getReturnColor(investment.profit)}>
+                                  {formatCurrency(investment.profit)}
+                                  {investment.profit_percentage && (
+                                    <span className="ml-1">({formatPercentage(investment.profit_percentage)})</span>
+                                  )}
+                                </div>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                            <td className="py-2 px-2 text-right" style={hoverStyle}>
+                              {" "}
+                              {/* ✅ TD için inline style */}
+                              <div className="flex justify-end space-x-2">
+                                <Button variant="outline" size="sm" onClick={() => openEditForm(investment)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                      <Trash2 className="h-4 w-4 text-red-500" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Yatırımı Sil</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Bu yatırımı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>İptal</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteInvestment(investment.id)}>
+                                        Sil
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
-                            ) : (
-                              "-"
-                            )}
-                          </td>
-                          <td className="py-2 px-2 text-right">
-                            <div className="flex justify-end space-x-2">
-                              <Button variant="outline" size="sm" onClick={() => openEditForm(investment)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="outline" size="sm">
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Yatırımı Sil</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Bu yatırımı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>İptal</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteInvestment(investment.id)}>
-                                      Sil
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
