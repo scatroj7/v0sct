@@ -76,7 +76,7 @@ export default function InvestmentsTab() {
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
-  // ✅ REACT STATE İLE HOVER KONTROLÜ - EN AGRESİF ÇÖZÜM
+  // ✅ REACT STATE İLE HOVER KONTROLÜ - DARK MODE UYUMLU
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
@@ -132,6 +132,28 @@ export default function InvestmentsTab() {
       }, 3000)
     }
   }
+
+  // ✅ DARK MODE DETECTION
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    // Dark mode detection
+    const checkDarkMode = () => {
+      const isDark = document.documentElement.classList.contains("dark")
+      setIsDarkMode(isDark)
+    }
+
+    checkDarkMode()
+
+    // Dark mode değişikliklerini dinle
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   // Kategoriye göre filtrelenmiş yatırımlar
   const filteredInvestments = useMemo(() => {
@@ -905,9 +927,11 @@ export default function InvestmentsTab() {
                     </thead>
                     <tbody>
                       {sortedInvestments.map((investment) => {
-                        // ✅ REACT STATE İLE HOVER KONTROLÜ - HER SATIR İÇİN INLINE STYLE
+                        // ✅ DARK MODE UYUMLU HOVER RENK KONTROLÜ
                         const isHovered = hoveredRowId === investment.id
-                        const hoverStyle = isHovered ? { backgroundColor: "rgb(239, 246, 255)" } : {}
+                        const hoverStyle = isHovered
+                          ? { backgroundColor: isDarkMode ? "rgb(55, 65, 81)" : "rgb(239, 246, 255)" }
+                          : {}
 
                         return (
                           <tr
@@ -921,11 +945,11 @@ export default function InvestmentsTab() {
                               console.log("Mouse Leave - Clearing hoveredRowId")
                               setHoveredRowId(null)
                             }}
-                            style={{ cursor: "pointer", ...hoverStyle }} // ✅ TR için inline style
+                            style={{ cursor: "pointer", ...hoverStyle }} // ✅ TR için dark mode uyumlu inline style
                           >
                             <td className="py-2 px-2" style={hoverStyle}>
                               {" "}
-                              {/* ✅ TD için inline style */}
+                              {/* ✅ TD için dark mode uyumlu inline style */}
                               <div className="font-medium">{investment.name}</div>
                               {investment.symbol && investment.symbol !== investment.name && (
                                 <div className="text-xs text-gray-500">{investment.symbol}</div>
@@ -933,7 +957,7 @@ export default function InvestmentsTab() {
                             </td>
                             <td className="py-2 px-2" style={hoverStyle}>
                               {" "}
-                              {/* ✅ TD için inline style */}
+                              {/* ✅ TD için dark mode uyumlu inline style */}
                               <span
                                 className={`px-2 py-1 rounded text-xs text-white ${getCategoryColor(
                                   investment.category,
@@ -944,22 +968,22 @@ export default function InvestmentsTab() {
                             </td>
                             <td className="py-2 px-2" style={hoverStyle}>
                               {" "}
-                              {/* ✅ TD için inline style */}
+                              {/* ✅ TD için dark mode uyumlu inline style */}
                               {formatAmount(investment.amount)}
                             </td>
                             <td className="py-2 px-2" style={hoverStyle}>
                               {" "}
-                              {/* ✅ TD için inline style */}
+                              {/* ✅ TD için dark mode uyumlu inline style */}
                               {formatCurrency(investment.purchase_price)}
                             </td>
                             <td className="py-2 px-2" style={hoverStyle}>
                               {" "}
-                              {/* ✅ TD için inline style */}
+                              {/* ✅ TD için dark mode uyumlu inline style */}
                               {investment.current_price ? formatCurrency(investment.current_price) : "-"}
                             </td>
                             <td className="py-2 px-2" style={hoverStyle}>
                               {" "}
-                              {/* ✅ TD için inline style */}
+                              {/* ✅ TD için dark mode uyumlu inline style */}
                               {investment.profit ? (
                                 <div className={getReturnColor(investment.profit)}>
                                   {formatCurrency(investment.profit)}
@@ -973,7 +997,7 @@ export default function InvestmentsTab() {
                             </td>
                             <td className="py-2 px-2 text-right" style={hoverStyle}>
                               {" "}
-                              {/* ✅ TD için inline style */}
+                              {/* ✅ TD için dark mode uyumlu inline style */}
                               <div className="flex justify-end space-x-2">
                                 <Button variant="outline" size="sm" onClick={() => openEditForm(investment)}>
                                   <Pencil className="h-4 w-4" />
