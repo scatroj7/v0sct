@@ -40,9 +40,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-// Dosyanın başına ekleyin:
-import styles from "./investment-table-styles.module.css"
-
 type Investment = {
   id: string
   name: string
@@ -90,6 +87,72 @@ export default function InvestmentsTab() {
     notes: "",
   })
 
+  // Debug fonksiyonu - hover sorununu analiz etmek için
+  const debugHover = () => {
+    const table = document.querySelector(".investments-table")
+    const rows = document.querySelectorAll(".investments-table tbody tr")
+
+    console.log("=== HOVER DEBUG ===")
+    console.log("Table found:", !!table)
+    console.log("Rows found:", rows.length)
+
+    rows.forEach((row, index) => {
+      const tds = row.querySelectorAll("td")
+      console.log(`Row ${index}:`, {
+        classes: row.className,
+        computedBg: getComputedStyle(row).backgroundColor,
+        tds: tds.length,
+      })
+
+      tds.forEach((td, tdIndex) => {
+        console.log(`  TD ${tdIndex}:`, {
+          computedBg: getComputedStyle(td).backgroundColor,
+          styles: td.style.cssText,
+        })
+      })
+    })
+  }
+
+  // Test hover fonksiyonu - JavaScript ile zorla hover simülasyonu
+  const testHover = () => {
+    const rows = document.querySelectorAll(".investments-table tbody tr")
+    console.log("=== TEST HOVER ===")
+
+    rows.forEach((row, index) => {
+      const tds = row.querySelectorAll("td")
+      console.log(`Testing Row ${index}...`)
+
+      // TR'ye renk uygula - Daha agresif yaklaşım
+      const rowElement = row as HTMLElement
+
+      // Sürekli renk kontrolü için interval
+      const forceColor = () => {
+        rowElement.style.setProperty("background-color", "rgb(239, 246, 255)", "important")
+        rowElement.style.setProperty("background", "rgb(239, 246, 255)", "important")
+        rowElement.classList.add("force-hover-bg")
+
+        tds.forEach((td) => {
+          const tdElement = td as HTMLElement
+          tdElement.style.setProperty("background-color", "rgb(239, 246, 255)", "important")
+          tdElement.style.setProperty("background", "rgb(239, 246, 255)", "important")
+          tdElement.classList.add("force-hover-bg")
+        })
+      }
+
+      // İlk uygulama
+      forceColor()
+
+      // 100ms boyunca sürekli uygula
+      const interval = setInterval(forceColor, 10)
+      setTimeout(() => clearInterval(interval), 1000)
+
+      console.log(`Row ${index} HOVER:`, {
+        computedBg: getComputedStyle(row).backgroundColor,
+        inlineStyle: rowElement.style.cssText,
+      })
+    })
+  }
+
   // Kategoriye göre filtrelenmiş yatırımlar
   const filteredInvestments = useMemo(() => {
     if (activeTab === "all") return investments
@@ -129,7 +192,6 @@ export default function InvestmentsTab() {
         case "profit_percentage":
           const aPct = a.profit_percentage || 0
           const bPct = b.profit_percentage || 0
-          comparison = aPct - bPct
           break
         default:
           comparison = 0
@@ -574,13 +636,63 @@ export default function InvestmentsTab() {
   // Kategori bazında sembol alanının gösterilip gösterilmeyeceğini belirle
   const showSymbolField = formData.category === "crypto" || formData.category === "stock"
 
-  // Mevcut event handler'ları bulun ve değiştirin:
+  // JavaScript ile hover efekti - CSS çalışmıyorsa
   const handleRowMouseEnter = (e: React.MouseEvent<HTMLTableRowElement>) => {
-    e.currentTarget.style.setProperty("background-color", "rgb(239 246 255)", "important")
+    console.log("Mouse Enter triggered!")
+    const row = e.currentTarget
+    const tds = row.querySelectorAll("td")
+
+    // TR'ye renk uygula - Tüm olası CSS property'lerini set et
+    row.style.setProperty("background-color", "rgb(239, 246, 255)", "important")
+    row.style.setProperty("background", "rgb(239, 246, 255)", "important")
+    row.style.setProperty("backgroundColor", "rgb(239, 246, 255)", "important")
+
+    // Tüm Tailwind sınıflarını kaldır ve yeni sınıf ekle
+    row.classList.remove("bg-white", "bg-transparent", "bg-inherit")
+    row.classList.add("force-hover-bg")
+
+    // Her TD'ye de renk uygula - Tüm olası CSS property'lerini set et
+    tds.forEach((td) => {
+      const tdElement = td as HTMLElement
+      tdElement.style.setProperty("background-color", "rgb(239, 246, 255)", "important")
+      tdElement.style.setProperty("background", "rgb(239, 246, 255)", "important")
+      tdElement.style.setProperty("backgroundColor", "rgb(239, 246, 255)", "important")
+
+      // Tüm Tailwind sınıflarını kaldır ve yeni sınıf ekle
+      tdElement.classList.remove("bg-white", "bg-transparent", "bg-inherit")
+      tdElement.classList.add("force-hover-bg")
+    })
+
+    // Zorla repaint tetikle
+    row.style.display = "none"
+    row.offsetHeight // trigger reflow
+    row.style.display = ""
   }
 
   const handleRowMouseLeave = (e: React.MouseEvent<HTMLTableRowElement>) => {
-    e.currentTarget.style.removeProperty("background-color")
+    console.log("Mouse Leave triggered!")
+    const row = e.currentTarget
+    const tds = row.querySelectorAll("td")
+
+    // TR'den rengi kaldır - Tüm olası CSS property'lerini temizle
+    row.style.removeProperty("background-color")
+    row.style.removeProperty("background")
+    row.style.removeProperty("backgroundColor")
+    row.classList.remove("force-hover-bg")
+
+    // Her TD'den de rengi kaldır - Tüm olası CSS property'lerini temizle
+    tds.forEach((td) => {
+      const tdElement = td as HTMLElement
+      tdElement.style.removeProperty("background-color")
+      tdElement.style.removeProperty("background")
+      tdElement.style.removeProperty("backgroundColor")
+      tdElement.classList.remove("force-hover-bg")
+    })
+
+    // Zorla repaint tetikle
+    row.style.display = "none"
+    row.offsetHeight // trigger reflow
+    row.style.display = ""
   }
 
   return (
@@ -588,6 +700,14 @@ export default function InvestmentsTab() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Yatırımlarım</h2>
         <div className="flex gap-2 items-center">
+          {/* Debug butonları */}
+          <Button variant="outline" size="sm" onClick={debugHover}>
+            Debug Hover
+          </Button>
+          <Button variant="outline" size="sm" onClick={testHover}>
+            Test Hover
+          </Button>
+
           {lastUpdated && (
             <TooltipProvider>
               <Tooltip>
@@ -819,7 +939,7 @@ export default function InvestmentsTab() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className={`w-full ${styles.investmentTable}`}>
+                  <table className="w-full investments-table">
                     <thead>
                       <tr className="border-b">
                         <th
@@ -863,7 +983,13 @@ export default function InvestmentsTab() {
                     </thead>
                     <tbody>
                       {sortedInvestments.map((investment) => (
-                        <tr key={investment.id}>
+                        <tr
+                          key={investment.id}
+                          className="border-b transition-colors duration-200 hover-row"
+                          onMouseEnter={handleRowMouseEnter}
+                          onMouseLeave={handleRowMouseLeave}
+                          style={{ cursor: "pointer" }}
+                        >
                           <td className="py-2 px-2">
                             <div className="font-medium">{investment.name}</div>
                             {investment.symbol && investment.symbol !== investment.name && (

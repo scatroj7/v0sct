@@ -8,6 +8,7 @@ module.exports = {
     "./src/**/*.{ts,tsx}",
     "*.{js,ts,jsx,tsx,mdx}",
   ],
+  important: true, // TÜM TAILWIND UTILITY SINIFLARINI !IMPORTANT YAP
   theme: {
     container: {
       center: true,

@@ -105,13 +105,154 @@ button,
   transition: all 0.3s ease;
 }
 
-/* Yatırım tablosu satırları için ana hover efekti */
-.investments-table tbody tr:hover {
-  background-color: rgb(239 246 255) !important; /* Tailwind'in blue-50 değeri */
+/* TAILWIND CSS'İ TAMAMEN EZMEK İÇİN SÜPER AGRESİF KURALLAR */
+
+/* Tüm Tailwind utility sınıflarını ezmek için en yüksek specificity */
+html body div div div div div .investments-table tbody tr:hover,
+html body div div div div div table.investments-table tbody tr:hover,
+html body div div div div div .investments-table tbody tr.hover-row:hover,
+html body div div div div div table.w-full.investments-table tbody tr:hover,
+html body div div div div div .w-full.investments-table tbody tr:hover,
+.investments-table tbody tr:hover,
+table.investments-table tbody tr:hover,
+.investments-table tbody tr.hover-row:hover,
+table.w-full.investments-table tbody tr:hover,
+.w-full.investments-table tbody tr:hover {
+  background-color: rgb(239, 246, 255) !important;
+  background: rgb(239, 246, 255) !important;
 }
 
-/* ÖNEMLİ: td elementlerinin arka plan renginin tr'den miras almasını sağla */
-/* Bu kural, tr'ye uygulanan hover renginin td'ler üzerinde de görünmesini sağlar. */
+/* TD elementleri için aynı agresif yaklaşım */
+html body div div div div div .investments-table tbody tr:hover td,
+html body div div div div div table.investments-table tbody tr:hover td,
+html body div div div div div .investments-table tbody tr.hover-row:hover td,
+html body div div div div div table.w-full.investments-table tbody tr:hover td,
+html body div div div div div .w-full.investments-table tbody tr:hover td,
+.investments-table tbody tr:hover td,
+table.investments-table tbody tr:hover td,
+.investments-table tbody tr.hover-row:hover td,
+table.w-full.investments-table tbody tr:hover td,
+.w-full.investments-table tbody tr:hover td,
+.investments-table tbody tr:hover > td,
+table.investments-table tbody tr:hover > td {
+  background-color: rgb(239, 246, 255) !important;
+  background: rgb(239, 246, 255) !important;
+}
+
+/* Tailwind'in tüm olası sınıflarını ezmek için */
+.investments-table tbody tr:hover.border-b,
+.investments-table tbody tr:hover.transition-colors,
+.investments-table tbody tr:hover.duration-200,
+.investments-table tbody tr:hover.hover-row {
+  background-color: rgb(239, 246, 255) !important;
+  background: rgb(239, 246, 255) !important;
+}
+
+.investments-table tbody tr:hover.border-b td,
+.investments-table tbody tr:hover.transition-colors td,
+.investments-table tbody tr:hover.duration-200 td,
+.investments-table tbody tr:hover.hover-row td {
+  background-color: rgb(239, 246, 255) !important;
+  background: rgb(239, 246, 255) !important;
+}
+
+/* CSS custom property ile override */
+.investments-table tbody tr:hover {
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(239 246 255 / var(--tw-bg-opacity)) !important;
+}
+
 .investments-table tbody tr:hover td {
-  background-color: inherit !important;
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(239 246 255 / var(--tw-bg-opacity)) !important;
+}
+
+/* Son çare: Tüm td elementleri için genel override */
+.investments-table td {
+  transition: background-color 0.2s ease !important;
+}
+
+/* Hover sınıfı ile de deneme */
+.hover-row:hover {
+  background-color: rgb(239, 246, 255) !important;
+  background: rgb(239, 246, 255) !important;
+}
+
+.hover-row:hover td {
+  background-color: rgb(239, 246, 255) !important;
+  background: rgb(239, 246, 255) !important;
+}
+
+/* Inline style'ları da desteklemek için */
+.investments-table tbody tr[style*="background-color"] {
+  background-color: rgb(239, 246, 255) !important;
+}
+
+.investments-table tbody tr[style*="background-color"] td {
+  background-color: rgb(239, 246, 255) !important;
+}
+
+/* NUCLEAR OPTION: Tüm olası Tailwind sınıflarını ezmek için */
+.investments-table tbody tr:hover,
+.investments-table tbody tr:hover.bg-white,
+.investments-table tbody tr:hover.bg-transparent,
+.investments-table tbody tr:hover.bg-inherit,
+.investments-table tbody tr:hover.bg-current,
+.investments-table tbody tr:hover.bg-black,
+.investments-table tbody tr:hover.bg-slate-50,
+.investments-table tbody tr:hover.bg-gray-50,
+.investments-table tbody tr:hover.bg-zinc-50,
+.investments-table tbody tr:hover.bg-neutral-50,
+.investments-table tbody tr:hover.bg-stone-50 {
+  background-color: rgb(239, 246, 255) !important;
+  background: rgb(239, 246, 255) !important;
+}
+
+.investments-table tbody tr:hover td,
+.investments-table tbody tr:hover td.bg-white,
+.investments-table tbody tr:hover td.bg-transparent,
+.investments-table tbody tr:hover td.bg-inherit,
+.investments-table tbody tr:hover td.bg-current,
+.investments-table tbody tr:hover td.bg-black,
+.investments-table tbody tr:hover td.bg-slate-50,
+.investments-table tbody tr:hover td.bg-gray-50,
+.investments-table tbody tr:hover td.bg-zinc-50,
+.investments-table tbody tr:hover td.bg-neutral-50,
+.investments-table tbody tr:hover td.bg-stone-50 {
+  background-color: rgb(239, 246, 255) !important;
+  background: rgb(239, 246, 255) !important;
+}
+
+/* FORCE HOVER - SON ÇARE CSS SINIFI */
+.force-hover-bg,
+.force-hover-bg.bg-white,
+.force-hover-bg.bg-transparent,
+.force-hover-bg.bg-inherit,
+.force-hover-bg.bg-current,
+.force-hover-bg.bg-black,
+.force-hover-bg.bg-slate-50,
+.force-hover-bg.bg-gray-50,
+.force-hover-bg.bg-zinc-50,
+.force-hover-bg.bg-neutral-50,
+.force-hover-bg.bg-stone-50,
+html body div div div div div .force-hover-bg,
+html body div div div div div table .force-hover-bg,
+html body div div div div div .investments-table .force-hover-bg {
+  background-color: rgb(239, 246, 255) !important;
+  background: rgb(239, 246, 255) !important;
+  backgroundColor: rgb(239, 246, 255) !important;
+}
+
+/* Eğer hala çalışmıyorsa, CSS animasyon ile zorla */
+@keyframes forceHoverBg {
+  0% {
+    background-color: rgb(239, 246, 255) !important;
+  }
+  100% {
+    background-color: rgb(239, 246, 255) !important;
+  }
+}
+
+.force-hover-bg {
+  animation: forceHoverBg 0.1s forwards !important;
 }
