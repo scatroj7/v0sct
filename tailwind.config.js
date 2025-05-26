@@ -74,4 +74,9 @@ module.exports = {
     },
   },
   plugins: [require("tailwindcss-animate")],
+  variants: {
+    extend: {
+      backgroundColor: ["hover", "focus"],
+    },
+  },
 }

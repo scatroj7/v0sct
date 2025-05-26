@@ -40,6 +40,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
+// Dosyanın başına ekleyin:
+import styles from "./investment-table-styles.module.css"
+
 type Investment = {
   id: string
   name: string
@@ -571,6 +574,15 @@ export default function InvestmentsTab() {
   // Kategori bazında sembol alanının gösterilip gösterilmeyeceğini belirle
   const showSymbolField = formData.category === "crypto" || formData.category === "stock"
 
+  // Mevcut event handler'ları bulun ve değiştirin:
+  const handleRowMouseEnter = (e: React.MouseEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.setProperty("background-color", "rgb(239 246 255)", "important")
+  }
+
+  const handleRowMouseLeave = (e: React.MouseEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.removeProperty("background-color")
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -807,7 +819,7 @@ export default function InvestmentsTab() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className={`w-full ${styles.investmentTable}`}>
                     <thead>
                       <tr className="border-b">
                         <th
@@ -851,7 +863,7 @@ export default function InvestmentsTab() {
                     </thead>
                     <tbody>
                       {sortedInvestments.map((investment) => (
-                        <tr key={investment.id} className="border-b hover:!bg-blue-50 transition-colors duration-200">
+                        <tr key={investment.id}>
                           <td className="py-2 px-2">
                             <div className="font-medium">{investment.name}</div>
                             {investment.symbol && investment.symbol !== investment.name && (

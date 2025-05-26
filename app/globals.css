@@ -104,3 +104,14 @@ button,
 [type="submit"] {
   transition: all 0.3s ease;
 }
+
+/* Yatırım tablosu satırları için ana hover efekti */
+.investments-table tbody tr:hover {
+  background-color: rgb(239 246 255) !important; /* Tailwind'in blue-50 değeri */
+}
+
+/* ÖNEMLİ: td elementlerinin arka plan renginin tr'den miras almasını sağla */
+/* Bu kural, tr'ye uygulanan hover renginin td'ler üzerinde de görünmesini sağlar. */
+.investments-table tbody tr:hover td {
+  background-color: inherit !important;
+}
