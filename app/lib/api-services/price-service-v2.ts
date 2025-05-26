@@ -129,55 +129,75 @@ async function fetchGoldPrice(type: string): Promise<number | null> {
     // Altın türüne göre fiyat çekme
     let price: number | null = null
 
-    if (type.includes("Gram")) {
-      // Gram altın
-      if (data["Gram Altın"] && data["Gram Altın"].Alış) {
-        price = Number.parseFloat(data["Gram Altın"].Alış.replace(",", "."))
+    if (type.includes("24 Ayar Gram") || type.includes("Has Altın")) {
+      // 24 Ayar Gram Altın (Has Altın)
+      if (data["gram-has-altin"] && data["gram-has-altin"].Alış) {
+        const priceStr = data["gram-has-altin"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
+      } else if (data["gram-altin"] && data["gram-altin"].Alış) {
+        // Has altın yoksa normal gram altın fiyatını kullan
+        const priceStr = data["gram-altin"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
+      }
+    } else if (type.includes("22 Ayar Gram")) {
+      // 22 Ayar Gram Altın
+      if (data["22-ayar-bilezik"] && data["22-ayar-bilezik"].Alış) {
+        const priceStr = data["22-ayar-bilezik"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
+      }
+    } else if (type.includes("18 Ayar Gram")) {
+      // 18 Ayar Gram Altın
+      if (data["18-ayar-altin"] && data["18-ayar-altin"].Alış) {
+        const priceStr = data["18-ayar-altin"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
+      }
+    } else if (type.includes("14 Ayar Gram")) {
+      // 14 Ayar Gram Altın
+      if (data["14-ayar-altin"] && data["14-ayar-altin"].Alış) {
+        const priceStr = data["14-ayar-altin"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
       }
     } else if (type.includes("Çeyrek")) {
       // Çeyrek altın
-      if (data["Çeyrek Altın"] && data["Çeyrek Altın"].Alış) {
-        price = Number.parseFloat(data["Çeyrek Altın"].Alış.replace(",", "."))
+      if (data["ceyrek-altin"] && data["ceyrek-altin"].Alış) {
+        const priceStr = data["ceyrek-altin"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
       }
     } else if (type.includes("Yarım")) {
       // Yarım altın
-      if (data["Yarım Altın"] && data["Yarım Altın"].Alış) {
-        price = Number.parseFloat(data["Yarım Altın"].Alış.replace(",", "."))
+      if (data["yarim-altin"] && data["yarim-altin"].Alış) {
+        const priceStr = data["yarim-altin"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
       }
     } else if (type.includes("Tam") || type.includes("Cumhuriyet")) {
       // Tam altın
-      if (data["Tam Altın"] && data["Tam Altın"].Alış) {
-        price = Number.parseFloat(data["Tam Altın"].Alış.replace(",", "."))
+      if (data["tam-altin"] && data["tam-altin"].Alış) {
+        const priceStr = data["tam-altin"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
       }
     } else if (type.includes("Ata")) {
       // Ata altın
-      if (data["Ata Altın"] && data["Ata Altın"].Alış) {
-        price = Number.parseFloat(data["Ata Altın"].Alış.replace(",", "."))
+      if (data["ata-altin"] && data["ata-altin"].Alış) {
+        const priceStr = data["ata-altin"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
       }
-    } else if (type.includes("22 Ayar")) {
-      // 22 Ayar
-      if (data["22 Ayar Bilezik"] && data["22 Ayar Bilezik"].Alış) {
-        price = Number.parseFloat(data["22 Ayar Bilezik"].Alış.replace(",", "."))
-      }
-    } else if (type.includes("14 Ayar")) {
-      // 14 Ayar
-      if (data["14 Ayar Altın"] && data["14 Ayar Altın"].Alış) {
-        price = Number.parseFloat(data["14 Ayar Altın"].Alış.replace(",", "."))
-      }
-    } else if (type.includes("18 Ayar")) {
-      // 18 Ayar
-      if (data["18 Ayar Altın"] && data["18 Ayar Altın"].Alış) {
-        price = Number.parseFloat(data["18 Ayar Altın"].Alış.replace(",", "."))
+    } else if (type.includes("22 Ayar Bilezik")) {
+      // 22 Ayar Bilezik
+      if (data["22-ayar-bilezik"] && data["22-ayar-bilezik"].Alış) {
+        const priceStr = data["22-ayar-bilezik"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
       }
     } else if (type.includes("Reşat")) {
       // Reşat altın
-      if (data["Reşat Altın"] && data["Reşat Altın"].Alış) {
-        price = Number.parseFloat(data["Reşat Altın"].Alış.replace(",", "."))
+      if (data["resat-altin"] && data["resat-altin"].Alış) {
+        const priceStr = data["resat-altin"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
       }
     } else {
       // Diğer altın türleri için gram altın fiyatını kullan
-      if (data["Gram Altın"] && data["Gram Altın"].Alış) {
-        price = Number.parseFloat(data["Gram Altın"].Alış.replace(",", "."))
+      if (data["gram-altin"] && data["gram-altin"].Alış) {
+        const priceStr = data["gram-altin"].Alış.replace(".", "").replace(",", ".")
+        price = Number.parseFloat(priceStr)
       }
     }
 
@@ -242,37 +262,45 @@ async function fetchForexRate(currency: string): Promise<number | null> {
     if (currency.includes("Amerikan Doları")) {
       // USD
       if (data["USD"] && data["USD"].Alış) {
-        rate = Number.parseFloat(data["USD"].Alış.replace(",", "."))
+        // Türkçe format: "38,9376" -> "38.9376"
+        const rateStr = data["USD"].Alış.replace(",", ".")
+        rate = Number.parseFloat(rateStr)
       }
     } else if (currency.includes("Euro")) {
       // EUR
       if (data["EUR"] && data["EUR"].Alış) {
-        rate = Number.parseFloat(data["EUR"].Alış.replace(",", "."))
+        const rateStr = data["EUR"].Alış.replace(",", ".")
+        rate = Number.parseFloat(rateStr)
       }
     } else if (currency.includes("İngiliz Sterlini")) {
       // GBP
       if (data["GBP"] && data["GBP"].Alış) {
-        rate = Number.parseFloat(data["GBP"].Alış.replace(",", "."))
+        const rateStr = data["GBP"].Alış.replace(",", ".")
+        rate = Number.parseFloat(rateStr)
       }
     } else if (currency.includes("İsviçre Frangı")) {
       // CHF
       if (data["CHF"] && data["CHF"].Alış) {
-        rate = Number.parseFloat(data["CHF"].Alış.replace(",", "."))
+        const rateStr = data["CHF"].Alış.replace(",", ".")
+        rate = Number.parseFloat(rateStr)
       }
     } else if (currency.includes("Japon Yeni")) {
       // JPY
       if (data["JPY"] && data["JPY"].Alış) {
-        rate = Number.parseFloat(data["JPY"].Alış.replace(",", "."))
+        const rateStr = data["JPY"].Alış.replace(",", ".")
+        rate = Number.parseFloat(rateStr)
       }
     } else if (currency.includes("Kanada Doları")) {
       // CAD
       if (data["CAD"] && data["CAD"].Alış) {
-        rate = Number.parseFloat(data["CAD"].Alış.replace(",", "."))
+        const rateStr = data["CAD"].Alış.replace(",", ".")
+        rate = Number.parseFloat(rateStr)
       }
     } else if (currency.includes("Avustralya Doları")) {
       // AUD
       if (data["AUD"] && data["AUD"].Alış) {
-        rate = Number.parseFloat(data["AUD"].Alış.replace(",", "."))
+        const rateStr = data["AUD"].Alış.replace(",", ".")
+        rate = Number.parseFloat(rateStr)
       }
     } else {
       // Diğer dövizler için USD kurunu kullan
@@ -304,11 +332,27 @@ async function fetchForexRateAlternative(currency: string): Promise<number | nul
     const currencyCode = getForexCode(currency)
     if (!currencyCode) return null
 
-    if (currencyCode === "USD") {
-      const usdRate = await getUSDtoTRYRate()
-      if (usdRate) return usdRate
+    let rate: number | null = null
+    if (
+      currencyCode === "USD" ||
+      currencyCode === "EUR" ||
+      currencyCode === "GBP" ||
+      currencyCode === "CHF" ||
+      currencyCode === "JPY" ||
+      currencyCode === "CAD" ||
+      currencyCode === "AUD"
+    ) {
+      const response = await fetch("https://finans.truncgil.com/today.json", {
+        next: { revalidate: 300 }, // 5 dakika
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data[currencyCode] && data[currencyCode].Alış) {
+          rate = Number.parseFloat(data[currencyCode].Alış.replace(",", "."))
+        }
+      }
     } else {
-      // Diğer para birimleri için USD üzerinden çapraz kur hesapla
       const response = await fetch(`https://open.er-api.com/v6/latest/USD`, {
         next: { revalidate: 300 }, // 5 dakika
       })
@@ -318,7 +362,7 @@ async function fetchForexRateAlternative(currency: string): Promise<number | nul
         if (data.rates && data.rates[currencyCode] && data.rates.TRY) {
           const usdToTry = data.rates.TRY
           const usdToCurrency = data.rates[currencyCode]
-          const rate = usdToTry / usdToCurrency
+          rate = usdToTry / usdToCurrency
           return rate
         }
       }
@@ -371,7 +415,7 @@ async function getUSDtoTRYRate(): Promise<number | null> {
 }
 
 /**
- * Alpha Vantage API'sinden hisse senedi fiyatı çekme
+ * Yahoo Finance API'sinden hisse senedi fiyatı çekme
  * @param symbol Hisse senedi sembolü
  * @returns Fiyat (TL cinsinden)
  */
@@ -388,21 +432,16 @@ async function fetchStockPrice(symbol: string): Promise<number | null> {
       return fetchBistPrice(symbol)
     }
 
-    // Diğer borsalar için simüle edilmiş fiyat
-    // Gerçek uygulamada burada Alpha Vantage veya başka bir API kullanılabilir
-    const simulatedPrice = getSimulatedStockPrice(symbol)
-    if (simulatedPrice) {
-      cachePrice(cacheKey, simulatedPrice)
-    }
-    return simulatedPrice
+    // NASDAQ ve NYSE hisseleri için Yahoo Finance API
+    return fetchYahooFinancePrice(symbol)
   } catch (error) {
     console.error(`Hisse senedi fiyatı çekilirken hata: ${error}`)
-    return null
+    return getSimulatedStockPrice(symbol)
   }
 }
 
 /**
- * BIST hisse senedi fiyatı çekme
+ * BIST hisse senedi fiyatı çekme (Yahoo Finance)
  * @param symbol BIST hisse senedi sembolü
  * @returns Fiyat (TL cinsinden)
  */
@@ -414,16 +453,98 @@ async function fetchBistPrice(symbol: string): Promise<number | null> {
       return cachedPrice
     }
 
-    // BIST hisseleri için simüle edilmiş fiyat
-    // Gerçek uygulamada burada web scraping veya bir API kullanılabilir
-    const simulatedPrice = getSimulatedBistPrice(symbol)
-    if (simulatedPrice) {
-      cachePrice(cacheKey, simulatedPrice)
+    // BIST sembolünü Yahoo Finance formatına çevir
+    const yahooSymbol = `${symbol}.IS` // THYAO -> THYAO.IS
+
+    const response = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=1d&range=1d`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+        next: { revalidate: 300 }, // 5 dakika
+      },
+    )
+
+    if (!response.ok) {
+      console.log(`Yahoo Finance BIST API hatası: ${response.status}`)
+      return getSimulatedBistPrice(symbol)
     }
-    return simulatedPrice
+
+    const data = await response.json()
+
+    if (data.chart && data.chart.result && data.chart.result[0]) {
+      const result = data.chart.result[0]
+      const meta = result.meta
+
+      if (meta && meta.regularMarketPrice) {
+        const price = meta.regularMarketPrice
+        cachePrice(cacheKey, price)
+        console.log(`${symbol} güncel fiyatı: ${price} TL`)
+        return price
+      }
+    }
+
+    console.log(`${symbol} için fiyat bulunamadı, simüle edilmiş fiyat kullanılıyor`)
+    return getSimulatedBistPrice(symbol)
   } catch (error) {
     console.error(`BIST hisse senedi fiyatı çekilirken hata: ${error}`)
-    return null
+    return getSimulatedBistPrice(symbol)
+  }
+}
+
+/**
+ * Yahoo Finance API'sinden uluslararası hisse senedi fiyatı çekme
+ * @param symbol Hisse senedi sembolü
+ * @returns Fiyat (USD cinsinden, TL'ye çevrilecek)
+ */
+async function fetchYahooFinancePrice(symbol: string): Promise<number | null> {
+  try {
+    const cacheKey = `yahoo_${symbol}`
+    const cachedPrice = getCachedPrice(cacheKey)
+    if (cachedPrice !== null) {
+      return cachedPrice
+    }
+
+    const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+      next: { revalidate: 300 }, // 5 dakika
+    })
+
+    if (!response.ok) {
+      console.log(`Yahoo Finance API hatası: ${response.status}`)
+      return getSimulatedStockPrice(symbol)
+    }
+
+    const data = await response.json()
+
+    if (data.chart && data.chart.result && data.chart.result[0]) {
+      const result = data.chart.result[0]
+      const meta = result.meta
+
+      if (meta && meta.regularMarketPrice) {
+        const usdPrice = meta.regularMarketPrice
+
+        // USD fiyatını TL'ye çevir
+        const usdToTryRate = await getUSDtoTRYRate()
+        if (usdToTryRate) {
+          const tryPrice = usdPrice * usdToTryRate
+          cachePrice(cacheKey, tryPrice)
+          console.log(`${symbol} güncel fiyatı: $${usdPrice} (${tryPrice.toFixed(2)} TL)`)
+          return tryPrice
+        }
+
+        return usdPrice // USD olarak dön
+      }
+    }
+
+    console.log(`${symbol} için fiyat bulunamadı, simüle edilmiş fiyat kullanılıyor`)
+    return getSimulatedStockPrice(symbol)
+  } catch (error) {
+    console.error(`Yahoo Finance fiyatı çekilirken hata: ${error}`)
+    return getSimulatedStockPrice(symbol)
   }
 }
 
@@ -637,29 +758,30 @@ function getSimulatedPrice(category: string, symbol: string): number {
       "Diğer Kripto": 100,
     },
     gold: {
-      "Gram Altın": 2400,
-      "Çeyrek Altın": 9800,
-      "Yarım Altın": 19600,
-      "Tam Altın": 39200,
-      "Cumhuriyet Altını": 40000,
-      "Ata Altın": 39500,
-      "Reşat Altını": 41000,
-      "22 Ayar Bilezik": 2200,
-      "14 Ayar Altın": 1400,
-      "18 Ayar Altın": 1800,
-      "Diğer Altın": 2300,
+      "24 Ayar Gram Altın": 4174,
+      "22 Ayar Gram Altın": 3814,
+      "18 Ayar Gram Altın": 3052,
+      "14 Ayar Gram Altın": 2383,
+      "Çeyrek Altın": 6690,
+      "Yarım Altın": 13338,
+      "Tam Altın": 26761,
+      "Cumhuriyet Altını": 27677,
+      "Ata Altın": 27597,
+      "Reşat Altını": 27597,
+      "22 Ayar Bilezik": 3814,
+      "Diğer Altın": 4000,
     },
     forex: {
-      "Amerikan Doları": 32.5,
-      Euro: 35.2,
-      "İngiliz Sterlini": 41.8,
-      "İsviçre Frangı": 36.5,
-      "Japon Yeni": 0.21,
-      "Kanada Doları": 23.8,
-      "Avustralya Doları": 21.5,
-      "Çin Yuanı": 4.5,
-      "Rus Rublesi": 0.35,
-      "Suudi Riyali": 8.65,
+      "Amerikan Doları": 38.94,
+      Euro: 44.29,
+      "İngiliz Sterlini": 52.82,
+      "İsviçre Frangı": 47.29,
+      "Japon Yeni": 0.27,
+      "Kanada Doları": 28.37,
+      "Avustralya Doları": 25.32,
+      "Çin Yuanı": 5.42,
+      "Rus Rublesi": 0.49,
+      "Suudi Riyali": 10.37,
       "Diğer Döviz": 10,
     },
   }

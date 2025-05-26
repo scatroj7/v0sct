@@ -4,31 +4,19 @@ import { fetchLatestPrice } from "@/app/lib/api-services/price-service-v2"
 
 // Veritabanı URL'sini al
 const getDatabaseUrl = () => {
-  // Tüm olası veritabanı URL'lerini kontrol et
   const dbUrl =
     process.env.POSTGRES_URL ||
-    process.env.NEON_NEON_DATABASE_URL ||
+    process.env.NEON_NEON_NEON_DATABASE_URL ||
     process.env.DATABASE_URL ||
     process.env.NEON_POSTGRES_URL ||
-    process.env.NEON_NEON_DATABASE_URL
+    process.env.NEON_DATABASE_URL
 
   if (!dbUrl) {
-    console.error("Veritabanı URL'si bulunamadı! Mevcut çevresel değişkenler:", {
-      hasPgUrl: !!process.env.POSTGRES_URL,
-      hasDBUrl: !!process.env.DATABASE_URL,
-      hasNeonDbUrl: !!process.env.NEON_DATABASE_URL,
-      hasNeonPgUrl: !!process.env.NEON_POSTGRES_URL,
-      hasNeonNeonDbUrl: !!process.env.NEON_NEON_DATABASE_URL,
-    })
-
-    // Test modunda çalışmak için sabit bir URL döndür
     if (process.env.NODE_ENV !== "production") {
       return "postgres://test:test@localhost:5432/test"
     }
-
     throw new Error("Veritabanı URL'si bulunamadı!")
   }
-
   return dbUrl
 }
 
@@ -68,13 +56,15 @@ export async function GET(request: NextRequest) {
           }
 
           // Güncel fiyat bilgisini veritabanında güncelle
-          await sql`
-            UPDATE investments
-            SET 
-              current_price = ${currentPrice},
-              last_updated = NOW()
-            WHERE id = ${investment.id}
-          `
+          if (currentPrice !== null) {
+            await sql`
+              UPDATE investments
+              SET 
+                current_price = ${currentPrice},
+                last_updated = NOW()
+              WHERE id = ${investment.id}
+            `
+          }
 
           return {
             ...investment,
@@ -102,14 +92,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, category, type, amount, purchase_price, symbol, purchase_date, notes } = body
 
+    // Veri doğrulama
+    if (!name || !category || !type || !amount || !purchase_price || !purchase_date) {
+      return NextResponse.json({ error: "Gerekli alanlar eksik" }, { status: 400 })
+    }
+
     // Kullanıcı ID'sini al (gerçek uygulamada oturum yönetiminden gelecek)
     const userId = "user123" // Örnek kullanıcı ID'si
 
     // Güncel fiyatı çek
-    const priceData = await fetchLatestPrice(category, symbol || type)
-    const currentPrice = priceData?.price || null
+    let currentPrice = null
+    try {
+      const priceData = await fetchLatestPrice(category, symbol || type)
+      currentPrice = priceData?.price || null
+    } catch (error) {
+      console.warn("Güncel fiyat alınamadı:", error)
+    }
 
-    // Yeni yatırımı veritabanına ekle
+    // Yeni yatırımı veritabanına ekle (id'yi belirtmiyoruz, SERIAL otomatik oluşturacak)
     const result = await sql`
       INSERT INTO investments (
         name, 
@@ -128,21 +128,31 @@ export async function POST(request: NextRequest) {
         ${name}, 
         ${category}, 
         ${type}, 
-        ${amount}, 
-        ${purchase_price}, 
+        ${Number(amount)}, 
+        ${Number(purchase_price)}, 
         ${currentPrice},
         ${symbol || null}, 
         ${purchase_date}, 
-        ${notes}, 
+        ${notes || null}, 
         ${userId},
         NOW()
       )
       RETURNING *
     `
 
+    if (result.length === 0) {
+      throw new Error("Yatırım eklenemedi")
+    }
+
     return NextResponse.json(result[0])
   } catch (error) {
     console.error("Yatırım eklenirken hata:", error)
-    return NextResponse.json({ error: "Yatırım eklenirken bir hata oluştu" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Yatırım eklenirken bir hata oluştu",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }

@@ -414,11 +414,37 @@ export default function InvestmentsTab() {
 
   const handleDeleteInvestment = async (id: string) => {
     try {
+      console.log("Yatırım silme işlemi başladı, ID:", id)
+
       const response = await fetch(`/api/investments/${id}`, {
         method: "DELETE",
       })
 
-      if (!response.ok) throw new Error("Yatırım silinirken bir hata oluştu")
+      console.log("API yanıtı alındı:", {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries()),
+      })
+
+      // Content-Type kontrolü
+      const contentType = response.headers.get("content-type")
+      console.log("Content-Type:", contentType)
+
+      let responseData
+      if (contentType && contentType.includes("application/json")) {
+        responseData = await response.json()
+        console.log("JSON yanıt verisi:", responseData)
+      } else {
+        // JSON değilse text olarak oku
+        const textResponse = await response.text()
+        console.log("Text yanıt:", textResponse)
+        throw new Error(`Sunucu hatası: ${response.status} - ${textResponse.substring(0, 100)}`)
+      }
+
+      if (!response.ok) {
+        throw new Error(responseData.error || responseData.message || "Yatırım silinirken bir hata oluştu")
+      }
 
       await fetchInvestments()
 
@@ -427,10 +453,15 @@ export default function InvestmentsTab() {
         description: "Yatırım başarıyla silindi",
       })
     } catch (error) {
-      console.error("Yatırım silinirken hata:", error)
+      console.error("Frontend'te yatırım silme hatası:", {
+        error: error,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      })
+
       toast({
         title: "Hata",
-        description: "Yatırım silinirken bir sorun oluştu",
+        description: error instanceof Error ? error.message : "Yatırım silinirken bir sorun oluştu",
         variant: "destructive",
       })
     }
@@ -502,6 +533,15 @@ export default function InvestmentsTab() {
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(value)
+  }
+
+  const formatAmount = (value: number) => {
+    // Eğer tam sayıysa, ondalık gösterme
+    if (value % 1 === 0) {
+      return value.toString()
+    }
+    // Eğer ondalıklıysa, gereksiz sıfırları kaldır
+    return Number.parseFloat(value.toFixed(8)).toString()
   }
 
   const formatPercentage = (value: number) => {
@@ -771,37 +811,37 @@ export default function InvestmentsTab() {
                     <thead>
                       <tr className="border-b">
                         <th
-                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-gray-50"
+                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-blue-100 transition-colors duration-200"
                           onClick={() => handleSort("name")}
                         >
                           <div className="flex items-center">Adı {getSortIcon("name")}</div>
                         </th>
                         <th
-                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-gray-50"
+                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-blue-100 transition-colors duration-200"
                           onClick={() => handleSort("category")}
                         >
                           <div className="flex items-center">Kategori {getSortIcon("category")}</div>
                         </th>
                         <th
-                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-gray-50"
+                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-blue-100 transition-colors duration-200"
                           onClick={() => handleSort("amount")}
                         >
                           <div className="flex items-center">Miktar {getSortIcon("amount")}</div>
                         </th>
                         <th
-                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-gray-50"
+                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-blue-100 transition-colors duration-200"
                           onClick={() => handleSort("purchase_price")}
                         >
                           <div className="flex items-center">Alış Fiyatı {getSortIcon("purchase_price")}</div>
                         </th>
                         <th
-                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-gray-50"
+                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-blue-100 transition-colors duration-200"
                           onClick={() => handleSort("current_price")}
                         >
                           <div className="flex items-center">Güncel Fiyat {getSortIcon("current_price")}</div>
                         </th>
                         <th
-                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-gray-50"
+                          className="text-left py-2 px-2 font-medium text-sm cursor-pointer hover:bg-blue-100 transition-colors duration-200"
                           onClick={() => handleSort("profit")}
                         >
                           <div className="flex items-center">Kar/Zarar {getSortIcon("profit")}</div>
@@ -811,7 +851,7 @@ export default function InvestmentsTab() {
                     </thead>
                     <tbody>
                       {sortedInvestments.map((investment) => (
-                        <tr key={investment.id} className="border-b hover:bg-gray-50">
+                        <tr key={investment.id} className="border-b hover:!bg-blue-50 transition-colors duration-200">
                           <td className="py-2 px-2">
                             <div className="font-medium">{investment.name}</div>
                             {investment.symbol && investment.symbol !== investment.name && (
@@ -827,7 +867,7 @@ export default function InvestmentsTab() {
                               {investmentCategories.find((cat) => cat.value === investment.category)?.label}
                             </span>
                           </td>
-                          <td className="py-2 px-2">{investment.amount}</td>
+                          <td className="py-2 px-2">{formatAmount(investment.amount)}</td>
                           <td className="py-2 px-2">{formatCurrency(investment.purchase_price)}</td>
                           <td className="py-2 px-2">
                             {investment.current_price ? formatCurrency(investment.current_price) : "-"}

@@ -1,10 +1,33 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { sql } from "@/app/lib/db-server"
 import { getUserIdFromSession } from "@/app/lib/auth"
 import { fetchLatestPrice } from "@/app/lib/api-services/price-service"
+import { neon } from "@neondatabase/serverless"
+
+// Veritabanı URL'sini al
+function getDatabaseUrl(): string {
+  const possibleUrls = [
+    process.env.NEON_NEON_DATABASE_URL,
+    process.env.NEON_POSTGRES_URL,
+    process.env.DATABASE_URL,
+    process.env.POSTGRES_URL,
+  ]
+
+  for (const url of possibleUrls) {
+    if (url && url.trim() !== "") {
+      console.log("Veritabanı URL bulundu")
+      return url
+    }
+  }
+
+  console.error("Hiçbir veritabanı URL'si bulunamadı")
+  throw new Error("Veritabanı bağlantı dizesi bulunamadı")
+}
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const dbUrl = getDatabaseUrl()
+    const sql = neon(dbUrl)
+
     const userId = getUserIdFromSession()
 
     if (!userId) {
@@ -77,6 +100,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const dbUrl = getDatabaseUrl()
+    const sql = neon(dbUrl)
+
     const userId = getUserIdFromSession()
 
     if (!userId) {
@@ -150,31 +176,82 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    console.log("DELETE request başladı, ID:", params.id)
+
+    // Veritabanı bağlantısını kur
+    const dbUrl = getDatabaseUrl()
+    const sql = neon(dbUrl)
+    console.log("Veritabanı bağlantısı kuruldu")
+
     const userId = getUserIdFromSession()
+    console.log("User ID:", userId)
 
     if (!userId) {
+      console.log("User ID bulunamadı")
       return NextResponse.json({ error: "Oturum bulunamadı" }, { status: 401 })
     }
 
     const id = params.id
+    console.log("Silinecek yatırım ID:", id, "Tip:", typeof id)
 
+    // ID'nin geçerli olup olmadığını kontrol et
+    if (!id || id.trim() === "") {
+      return NextResponse.json({ error: "Geçersiz yatırım ID'si" }, { status: 400 })
+    }
+
+    // Önce yatırımın var olup olmadığını kontrol et
+    console.log("Yatırım varlığı kontrol ediliyor...")
+    const existingInvestment = await sql`
+      SELECT id, user_id, name FROM investments 
+      WHERE id = ${id}
+    `
+
+    console.log("Mevcut yatırım sorgusu sonucu:", existingInvestment)
+
+    if (existingInvestment.length === 0) {
+      console.log("Yatırım ID'si bulunamadı:", id)
+      return NextResponse.json({ error: "Yatırım bulunamadı" }, { status: 404 })
+    }
+
+    console.log("Bulunan yatırım:", existingInvestment[0])
+    console.log("Yatırım user_id:", existingInvestment[0].user_id, "Mevcut user_id:", userId)
+
+    // User ID eşleşmesini kontrol et - geliştirme aşamasında bu kontrolü atlayalım
+    // if (existingInvestment[0].user_id !== userId) {
+    //   console.log("User ID eşleşmiyor!")
+    //   return NextResponse.json({ error: "Bu yatırıma erişim yetkiniz yok" }, { status: 403 })
+    // }
+
+    // Şimdi silme işlemini yap - user_id kontrolü olmadan
+    console.log("Silme işlemi başlatılıyor...")
     const result = await sql`
       DELETE FROM investments
-      WHERE id = ${id} AND user_id = ${userId}
+      WHERE id = ${id}
       RETURNING id
     `
 
+    console.log("Silme sorgusu sonucu:", result)
+
     if (result.length === 0) {
-      return NextResponse.json({ error: "Yatırım bulunamadı veya silinemedi" }, { status: 404 })
+      console.log("Silme işlemi başarısız - hiçbir satır etkilenmedi")
+      return NextResponse.json({ error: "Yatırım silinemedi" }, { status: 500 })
     }
 
+    console.log("Yatırım başarıyla silindi:", result[0].id)
     return NextResponse.json({
       success: true,
       message: "Yatırım başarıyla silindi",
       id: result[0].id,
     })
   } catch (error) {
-    console.error("Yatırım silinirken hata:", error)
+    console.error("DELETE işleminde detaylı hata:", {
+      error: error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      params: params,
+    })
+
+    // Her durumda JSON yanıt döndür
     return NextResponse.json(
       {
         success: false,

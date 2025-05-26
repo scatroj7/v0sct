@@ -22,7 +22,10 @@ export const investmentTypes = {
     { value: "Diğer Kripto", label: "Diğer Kripto Para" },
   ],
   gold: [
-    { value: "Gram Altın", label: "Gram Altın" },
+    { value: "24 Ayar Gram Altın", label: "24 Ayar Gram Altın (Has Altın)" },
+    { value: "22 Ayar Gram Altın", label: "22 Ayar Gram Altın" },
+    { value: "18 Ayar Gram Altın", label: "18 Ayar Gram Altın" },
+    { value: "14 Ayar Gram Altın", label: "14 Ayar Gram Altın" },
     { value: "Çeyrek Altın", label: "Çeyrek Altın" },
     { value: "Yarım Altın", label: "Yarım Altın" },
     { value: "Tam Altın", label: "Tam Altın" },
@@ -30,8 +33,6 @@ export const investmentTypes = {
     { value: "Ata Altın", label: "Ata Altın" },
     { value: "Reşat Altını", label: "Reşat Altını" },
     { value: "22 Ayar Bilezik", label: "22 Ayar Bilezik" },
-    { value: "14 Ayar Altın", label: "14 Ayar Altın" },
-    { value: "18 Ayar Altın", label: "18 Ayar Altın" },
     { value: "Diğer Altın", label: "Diğer Altın" },
   ],
   forex: [
@@ -120,29 +121,30 @@ const priceData = {
     "Diğer Kripto": 100,
   },
   gold: {
-    "Gram Altın": 2400,
-    "Çeyrek Altın": 9800,
-    "Yarım Altın": 19600,
-    "Tam Altın": 39200,
-    "Cumhuriyet Altını": 40000,
-    "Ata Altın": 39500,
-    "Reşat Altını": 41000,
-    "22 Ayar Bilezik": 2200,
-    "14 Ayar Altın": 1400,
-    "18 Ayar Altın": 1800,
-    "Diğer Altın": 2300,
+    "24 Ayar Gram Altın": 4174, // Has altın (en saf)
+    "22 Ayar Gram Altın": 3814, // 22 ayar bilezik fiyatı
+    "18 Ayar Gram Altın": 3052, // 18 ayar
+    "14 Ayar Gram Altın": 2383, // 14 ayar
+    "Çeyrek Altın": 6690,
+    "Yarım Altın": 13338,
+    "Tam Altın": 26761,
+    "Cumhuriyet Altını": 27677,
+    "Ata Altın": 27597,
+    "Reşat Altını": 27597,
+    "22 Ayar Bilezik": 3814,
+    "Diğer Altın": 4000,
   },
   forex: {
-    "Amerikan Doları": 32.5,
-    Euro: 35.2,
-    "İngiliz Sterlini": 41.8,
-    "İsviçre Frangı": 36.5,
-    "Japon Yeni": 0.21,
-    "Kanada Doları": 23.8,
-    "Avustralya Doları": 21.5,
-    "Çin Yuanı": 4.5,
-    "Rus Rublesi": 0.35,
-    "Suudi Riyali": 8.65,
+    "Amerikan Doları": 38.94,
+    Euro: 44.29,
+    "İngiliz Sterlini": 52.82,
+    "İsviçre Frangı": 47.29,
+    "Japon Yeni": 0.27,
+    "Kanada Doları": 28.37,
+    "Avustralya Doları": 25.32,
+    "Çin Yuanı": 5.42,
+    "Rus Rublesi": 0.49,
+    "Suudi Riyali": 10.37,
     "Diğer Döviz": 10,
   },
   stock: {
@@ -207,7 +209,7 @@ export async function fetchLatestPrice(category: string, symbol: string): Promis
         break
       case "gold":
         // Altın için tür kullanılır (sembol = tür)
-        basePrice = priceData.gold[symbol as keyof typeof priceData.gold] || 2300
+        basePrice = priceData.gold[symbol as keyof typeof priceData.gold] || 4000
         break
       case "forex":
         // Döviz için tür kullanılır (sembol = tür)
