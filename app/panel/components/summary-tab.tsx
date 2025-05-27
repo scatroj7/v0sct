@@ -644,14 +644,14 @@ const SummaryTab = ({ useLocalStorage = true }: SummaryTabProps) => {
                         formatter={(value) => formatCurrency(Number(value))}
                         labelFormatter={(label) => `${label}`}
                         contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
+                          backgroundColor: "#1f2937", // Dark gray background
+                          border: "1px solid #374151", // Gray border
                           borderRadius: "8px",
-                          color: "hsl(var(--foreground))",
-                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                          color: "#f9fafb", // Light gray text
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.3)",
                         }}
                         labelStyle={{
-                          color: "hsl(var(--foreground))",
+                          color: "#e5e7eb", // Light gray for label
                           fontWeight: "600",
                         }}
                       />
@@ -704,11 +704,11 @@ const SummaryTab = ({ useLocalStorage = true }: SummaryTabProps) => {
                         <Tooltip
                           formatter={(value) => formatCurrency(Number(value))}
                           contentStyle={{
-                            backgroundColor: "hsl(var(--card))",
-                            border: "1px solid hsl(var(--border))",
+                            backgroundColor: "#1f2937", // Dark gray background
+                            border: "1px solid #374151", // Gray border
                             borderRadius: "8px",
-                            color: "hsl(var(--foreground))",
-                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                            color: "#f9fafb", // Light gray text
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.3)",
                           }}
                         />
                       </PieChart>
@@ -755,11 +755,11 @@ const SummaryTab = ({ useLocalStorage = true }: SummaryTabProps) => {
                         <Tooltip
                           formatter={(value) => formatCurrency(Number(value))}
                           contentStyle={{
-                            backgroundColor: "hsl(var(--card))",
-                            border: "1px solid hsl(var(--border))",
+                            backgroundColor: "#1f2937", // Dark gray background
+                            border: "1px solid #374151", // Gray border
                             borderRadius: "8px",
-                            color: "hsl(var(--foreground))",
-                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                            color: "#f9fafb", // Light gray text
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.3)",
                           }}
                         />
                       </PieChart>
