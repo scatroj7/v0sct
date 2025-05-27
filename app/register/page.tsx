@@ -1,73 +1,94 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
+import { registerUser, saveUserToLocal, isEmailRegistered, debugListAllUsers } from "@/app/lib/simple-auth"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { registerUser, saveUserToLocal, isEmailRegistered } from "@/app/lib/simple-auth"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import Link from "next/link"
 
 export default function RegisterPage() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError("")
+    setIsLoading(true)
+
+    // Validasyon
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError("Tüm alanları doldurun")
+      setIsLoading(false)
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError("Şifreler eşleşmiyor")
+      setIsLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setError("Şifre en az 6 karakter olmalı")
+      setIsLoading(false)
+      return
+    }
+
+    // Email zaten kayıtlı mı kontrol et
+    if (isEmailRegistered(email)) {
+      setError("Bu email adresi zaten kayıtlı")
+      setIsLoading(false)
+      return
+    }
 
     try {
-      if (password.length < 6) {
-        setError("Şifre en az 6 karakter olmalıdır.")
-        setIsLoading(false)
-        return
-      }
+      // Kullanıcıyı kaydet
+      const newUser = registerUser(name.trim(), email.trim(), password)
 
-      if (isEmailRegistered(email)) {
-        setError("Bu email adresi zaten kayıtlı.")
-        setIsLoading(false)
-        return
-      }
+      if (newUser) {
+        // Kullanıcıyı local storage'a kaydet ve giriş yap
+        saveUserToLocal(newUser)
 
-      const user = registerUser(name, email, password)
-      if (user) {
-        saveUserToLocal(user)
+        console.log("✅ Kayıt başarılı:", newUser)
+
+        // Debug - tüm kullanıcıları listele
+        debugListAllUsers()
+
+        // Panel'e yönlendir
         router.push("/panel")
       } else {
-        setError("Kayıt sırasında bir hata oluştu.")
+        setError("Kayıt sırasında bir hata oluştu")
       }
     } catch (error) {
-      console.error("Register hatası:", error)
-      setError("Kayıt sırasında bir hata oluştu.")
-    } finally {
-      setIsLoading(false)
+      console.error("Register error:", error)
+      setError("Kayıt sırasında bir hata oluştu")
     }
+
+    setIsLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background dark:bg-gray-950 p-4">
-      <Card className="w-full max-w-md dark:bg-gray-900 dark:border-gray-800">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold dark:text-white">Kayıt Ol</CardTitle>
-          <CardDescription className="dark:text-gray-400">
-            Yeni hesap oluşturarak finanslarınızı takip etmeye başlayın.
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold text-center">Kayıt Ol</CardTitle>
+          <CardDescription className="text-center">ScaTrack hesabınızı oluşturun</CardDescription>
         </CardHeader>
-        <form onSubmit={handleRegister}>
-          <CardContent className="space-y-4">
-            {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
-
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="dark:text-gray-300">
-                Ad Soyad
-              </Label>
+              <Label htmlFor="name">Ad Soyad</Label>
               <Input
                 id="name"
                 type="text"
@@ -75,29 +96,23 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="dark:text-gray-300">
-                E-posta
-              </Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="ornek@mail.com"
+                placeholder="email@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="dark:text-gray-300">
-                Şifre
-              </Label>
+              <Label htmlFor="password">Şifre</Label>
               <Input
                 id="password"
                 type="password"
@@ -105,27 +120,39 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               />
             </div>
 
-            <Button
-              type="submit"
-              className="w-full dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
-              disabled={isLoading}
-            >
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Şifre Tekrar</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Şifrenizi tekrar girin"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Kayıt Oluşturuluyor..." : "Kayıt Ol"}
             </Button>
-          </CardContent>
-        </form>
-        <CardFooter>
-          <div className="text-sm text-center w-full dark:text-gray-400">
+          </form>
+
+          <div className="mt-4 text-center text-sm">
             Zaten hesabınız var mı?{" "}
-            <Link href="/login" className="text-primary dark:text-blue-400 hover:underline">
+            <Link href="/login" className="text-blue-600 hover:underline">
               Giriş Yap
             </Link>
           </div>
-        </CardFooter>
+        </CardContent>
       </Card>
     </div>
   )

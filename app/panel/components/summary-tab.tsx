@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
 import { tr } from "date-fns/locale"
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns"
+import { localStorageManager } from "@/app/lib/local-storage-manager"
 import {
   BarChart,
   Bar,
@@ -40,9 +41,21 @@ interface CategorySummary {
   type: string
 }
 
-const SummaryTab = () => {
+interface SummaryTabProps {
+  useLocalStorage?: boolean
+}
+
+const SummaryTab = ({ useLocalStorage = true }: SummaryTabProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
+  const [stats, setStats] = useState({
+    totalIncome: 0,
+    totalExpense: 0,
+    balance: 0,
+    transactionCount: 0,
+    categoryCount: 0,
+    investmentValue: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -73,8 +86,6 @@ const SummaryTab = () => {
 
   // Para formatı
   const formatCurrency = (amount: number) => {
-    if (isNaN(amount)) return "₺0,00"
-
     return new Intl.NumberFormat("tr-TR", {
       style: "currency",
       currency: "TRY",
@@ -182,7 +193,33 @@ const SummaryTab = () => {
       setLoading(true)
       setError(null)
 
-      console.log("İşlemler getiriliyor...")
+      console.log("🔍 Summary fetchTransactions - useLocalStorage prop değeri:", useLocalStorage)
+
+      // ZORUNLU KONTROL: Normal kullanıcılar için sadece local storage
+      if (useLocalStorage === true) {
+        console.log("📦 SUMMARY ZORUNLU LOCAL STORAGE - API çağrısı yapılmayacak")
+        // Local storage'dan veri al
+        const localTransactions = localStorageManager.getTransactions()
+
+        // Kategori isimlerini ekle
+        const categories = localStorageManager.getCategories()
+        const transactionsWithCategories = localTransactions.map((transaction) => ({
+          ...transaction,
+          category_name: categories.find((cat) => cat.id === transaction.category_id)?.name || "Bilinmeyen",
+          category_color: categories.find((cat) => cat.id === transaction.category_id)?.color,
+        }))
+
+        setAllTransactions(transactionsWithCategories)
+        filterTransactions(transactionsWithCategories)
+        console.log(`📦 Summary: ${transactionsWithCategories.length} local işlem alındı`)
+
+        // Grafik verilerini hazırla
+        prepareChartData(transactionsWithCategories)
+        return // ERKEN ÇIKIŞ - API çağrısı yapma
+      }
+
+      // Sadmin kullanıcılar için database
+      console.log("🗄️ Summary: Database'den işlemler alınıyor...")
       const response = await fetch("/api/transactions")
 
       if (!response.ok) {
@@ -323,11 +360,13 @@ const SummaryTab = () => {
   // Özet verilerini hesapla
   const calculateSummary = () => {
     if (!transactions || transactions.length === 0) {
-      return { totalIncome: 0, totalExpense: 0, balance: 0 }
+      return { totalIncome: 0, totalExpense: 0, balance: 0, transactionCount: 0, categoryCount: 0, investmentValue: 0 }
     }
 
     let totalIncome = 0
     let totalExpense = 0
+    let categoryCount = new Set<string>().size
+    let investmentValue = 0
 
     transactions.forEach((transaction) => {
       // Sayısal değer kontrolü yap
@@ -338,24 +377,56 @@ const SummaryTab = () => {
       } else {
         totalExpense += amount
       }
+
+      if (transaction.category_name) {
+        categoryCount++
+      }
+
+      if (transaction.type === "investment") {
+        investmentValue += amount
+      }
     })
 
     return {
       totalIncome,
       totalExpense,
       balance: totalIncome - totalExpense,
+      transactionCount: transactions.length,
+      categoryCount,
+      investmentValue,
     }
   }
 
   // İlk yükleme
   useEffect(() => {
-    fetchTransactions()
-  }, [])
+    const fetchStats = async () => {
+      try {
+        setLoading(true)
 
-  // Filtreler değiştiğinde işlemleri filtrele
-  useEffect(() => {
-    filterTransactions()
-  }, [dateFilterType, startDate, endDate])
+        if (useLocalStorage) {
+          // Local storage'dan istatistikleri al
+          console.log("📊 Local storage'dan istatistikler alınıyor...")
+          const localStats = localStorageManager.getStats()
+          setStats(localStats)
+          console.log("📊 Local istatistikler:", localStats)
+        } else {
+          // Database'den istatistikleri al (admin için)
+          console.log("📊 Database'den istatistikler alınıyor...")
+          // Burada database API çağrısı yapılabilir
+          // Şimdilik local storage kullan
+          const localStats = localStorageManager.getStats()
+          setStats(localStats)
+        }
+      } catch (error) {
+        console.error("İstatistikler alınırken hata:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+    fetchTransactions()
+  }, [useLocalStorage])
 
   const summary = calculateSummary()
 
@@ -381,6 +452,82 @@ const SummaryTab = () => {
           </AlertDescription>
         </Alert>
       )}
+
+      <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border">
+        <p className="text-sm text-blue-700 dark:text-blue-300">
+          📊 Veri kaynağı: {useLocalStorage ? "Local Storage (Kişisel)" : "Database (Admin)"}
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam Gelir</CardTitle>
+            <span className="text-2xl">💰</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(summary.totalIncome)}</div>
+            <p className="text-xs text-muted-foreground">Bu ay kazandığınız toplam tutar</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam Gider</CardTitle>
+            <span className="text-2xl">💸</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(summary.totalExpense)}</div>
+            <p className="text-xs text-muted-foreground">Bu ay harcadığınız toplam tutar</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Net Bakiye</CardTitle>
+            <span className="text-2xl">⚖️</span>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${summary.balance >= 0 ? "text-green-600" : "text-red-600"}`}>
+              {formatCurrency(summary.balance)}
+            </div>
+            <p className="text-xs text-muted-foreground">Gelir - Gider farkı</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">İşlem Sayısı</CardTitle>
+            <span className="text-2xl">📊</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summary.transactionCount}</div>
+            <p className="text-xs text-muted-foreground">Toplam işlem adedi</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Kategori Sayısı</CardTitle>
+            <span className="text-2xl">🏷️</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summary.categoryCount}</div>
+            <p className="text-xs text-muted-foreground">Kullanılan kategori adedi</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Yatırım Değeri</CardTitle>
+            <span className="text-2xl">📈</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{formatCurrency(summary.investmentValue)}</div>
+            <p className="text-xs text-muted-foreground">Toplam yatırım portföyü değeri</p>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="mb-6">
         {/* Filtreler */}

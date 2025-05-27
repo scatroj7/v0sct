@@ -21,6 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, Plus, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react"
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns"
 import { NexusDatePicker } from "@/components/ui/nexus-date-picker"
+import { localStorageManager } from "@/app/lib/local-storage-manager"
 
 interface Transaction {
   id: string
@@ -29,6 +30,7 @@ interface Transaction {
   type: string
   category_id: string
   category_name?: string
+  category_color?: string
   date: string
   created_at: string
 }
@@ -50,7 +52,11 @@ interface DateRange {
 type SortDirection = "asc" | "desc" | "none"
 type SortField = "date" | "description" | "category" | "amount" | null
 
-const TransactionsTab = () => {
+interface TransactionsTabProps {
+  useLocalStorage?: boolean
+}
+
+const TransactionsTab = ({ useLocalStorage = true }: TransactionsTabProps) => {
   // İşlemler ve kategoriler
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
@@ -153,6 +159,32 @@ const TransactionsTab = () => {
       setLoading(true)
       setError(null)
 
+      console.log("🔍 fetchTransactions - useLocalStorage prop değeri:", useLocalStorage)
+
+      // ZORUNLU KONTROL: Normal kullanıcılar için sadece local storage
+      if (useLocalStorage === true) {
+        console.log("📦 ZORUNLU LOCAL STORAGE - API çağrısı yapılmayacak")
+        // Local storage'dan veri al
+        const localTransactions = localStorageManager.getTransactions()
+
+        // Kategori isimlerini ekle
+        const categories = localStorageManager.getCategories()
+        const transactionsWithCategories = localTransactions.map((transaction) => ({
+          ...transaction,
+          category_name: categories.find((cat) => cat.id === transaction.category_id)?.name || "Bilinmeyen",
+          category_color: categories.find((cat) => cat.id === transaction.category_id)?.color,
+        }))
+
+        setAllTransactions(transactionsWithCategories)
+        setTransactions(transactionsWithCategories)
+        console.log(`📦 ${transactionsWithCategories.length} local işlem alındı`)
+
+        filterTransactions(transactionsWithCategories)
+        return // ERKEN ÇIKIŞ - API çağrısı yapma
+      }
+
+      // Sadece admin kullanıcılar için database
+      console.log("🗄️ Database'den işlemler alınıyor...")
       const response = await fetch("/api/transactions")
 
       if (!response.ok) {
@@ -162,7 +194,6 @@ const TransactionsTab = () => {
       const data = await response.json()
 
       if (data.success && data.transactions) {
-        // Sayısal değerleri doğru şekilde dönüştür
         const parsedTransactions = data.transactions.map((transaction: any) => ({
           ...transaction,
           amount: Number.parseFloat(transaction.amount) || 0,
@@ -170,9 +201,8 @@ const TransactionsTab = () => {
 
         setAllTransactions(parsedTransactions)
         setTransactions(parsedTransactions)
-        console.log(`${parsedTransactions.length} işlem alındı`)
+        console.log(`🗄️ ${parsedTransactions.length} database işlem alındı`)
 
-        // İlk yüklemede filtreleri uygula
         filterTransactions(parsedTransactions)
       } else {
         console.error("Beklenmeyen API yanıt formatı:", data)
@@ -189,6 +219,29 @@ const TransactionsTab = () => {
   // Kategorileri getir
   const fetchCategories = async () => {
     try {
+      console.log("🔍 fetchCategories - useLocalStorage prop değeri:", useLocalStorage)
+
+      // ZORUNLU KONTROL: Normal kullanıcılar için sadece local storage
+      if (useLocalStorage === true) {
+        console.log("📦 ZORUNLU LOCAL STORAGE - Kategoriler API çağrısı yapılmayacak")
+        const localCategories = localStorageManager.getCategories()
+
+        setCategories(localCategories)
+
+        const income = localCategories.filter((cat) => cat.type === "income")
+        const expense = localCategories.filter((cat) => cat.type === "expense")
+
+        setIncomeCategories(income)
+        setExpenseCategories(expense)
+
+        console.log(
+          `📦 ${localCategories.length} local kategori alındı (${income.length} gelir, ${expense.length} gider)`,
+        )
+        return // ERKEN ÇIKIŞ - API çağrısı yapma
+      }
+
+      // Sadece admin kullanıcılar için database
+      console.log("🗄️ Database'den kategoriler alınıyor...")
       const response = await fetch("/api/categories")
 
       if (!response.ok) {
@@ -200,14 +253,15 @@ const TransactionsTab = () => {
       if (data.success && data.categories) {
         setCategories(data.categories)
 
-        // Kategorileri türlerine göre ayır
         const income = data.categories.filter((cat: Category) => cat.type === "income")
         const expense = data.categories.filter((cat: Category) => cat.type === "expense")
 
         setIncomeCategories(income)
         setExpenseCategories(expense)
 
-        console.log(`${data.categories.length} kategori alındı (${income.length} gelir, ${expense.length} gider)`)
+        console.log(
+          `🗄️ ${data.categories.length} database kategori alındı (${income.length} gelir, ${expense.length} gider)`,
+        )
       } else {
         console.error("Beklenmeyen API yanıt formatı:", data)
         setError("Kategoriler beklenmeyen bir formatta alındı.")
@@ -224,58 +278,72 @@ const TransactionsTab = () => {
       setIsSubmitting(true)
       setError(null)
 
-      // Validasyon
       if (!newTransaction.amount || !newTransaction.category_id || !newTransaction.date) {
         setError("Tutar, kategori ve tarih alanları zorunludur.")
         return
       }
 
-      // İstek gövdesini konsola yazdır (hata ayıklama için)
-      const requestBody = {
-        ...newTransaction,
-        amount: Number.parseFloat(newTransaction.amount),
-        date: format(newTransaction.date, "yyyy-MM-dd"),
-      }
-      console.log("İşlem ekleme isteği:", requestBody)
+      if (useLocalStorage) {
+        // Local storage'a ekle
+        console.log("📦 Local storage'a işlem ekleniyor...")
+        const transactionData = {
+          amount: Number.parseFloat(newTransaction.amount),
+          description: newTransaction.description,
+          type: newTransaction.type as "income" | "expense",
+          category_id: newTransaction.category_id,
+          date: format(newTransaction.date, "yyyy-MM-dd"),
+        }
 
-      const response = await fetch("/api/transactions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      })
+        localStorageManager.addTransaction(transactionData)
+        console.log("📦 Local storage'a işlem eklendi")
+      } else {
+        // Database'e ekle
+        console.log("🗄️ Database'e işlem ekleniyor...")
+        const requestBody = {
+          ...newTransaction,
+          amount: Number.parseFloat(newTransaction.amount),
+          date: format(newTransaction.date, "yyyy-MM-dd"),
+        }
 
-      // Yanıtı konsola yazdır (hata ayıklama için)
-      const responseText = await response.text()
-      console.log("İşlem ekleme yanıtı:", responseText)
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`)
-      }
-
-      let data
-      try {
-        data = JSON.parse(responseText)
-      } catch (e) {
-        throw new Error(`API yanıtı geçerli JSON değil: ${responseText}`)
-      }
-
-      if (data.success) {
-        // İşlem başarılı, formu sıfırla ve işlemleri yeniden getir
-        setNewTransaction({
-          amount: "",
-          description: "",
-          type: "expense",
-          category_id: "",
-          date: new Date(),
+        const response = await fetch("/api/transactions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
         })
 
-        setIsAddDialogOpen(false)
-        fetchTransactions()
-      } else {
-        setError(data.message || "İşlem eklenirken bir hata oluştu.")
+        const responseText = await response.text()
+        console.log("🗄️ Database işlem ekleme yanıtı:", responseText)
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status} ${response.statusText}`)
+        }
+
+        let data
+        try {
+          data = JSON.parse(responseText)
+        } catch (e) {
+          throw new Error(`API yanıtı geçerli JSON değil: ${responseText}`)
+        }
+
+        if (!data.success) {
+          setError(data.message || "İşlem eklenirken bir hata oluştu.")
+          return
+        }
       }
+
+      // Formu sıfırla ve işlemleri yeniden getir
+      setNewTransaction({
+        amount: "",
+        description: "",
+        type: "expense",
+        category_id: "",
+        date: new Date(),
+      })
+
+      setIsAddDialogOpen(false)
+      fetchTransactions()
     } catch (err) {
       console.error("İşlem eklenirken hata:", err)
       setError(`İşlem eklenirken bir hata oluştu: ${err instanceof Error ? err.message : String(err)}`)
@@ -296,39 +364,52 @@ const TransactionsTab = () => {
       setLoading(true)
       setError(null)
 
-      console.log("Silinecek işlemler:", selectedTransactions)
+      if (useLocalStorage) {
+        // Local storage'dan sil
+        console.log("📦 Local storage'dan işlemler siliniyor:", selectedTransactions)
+        const deletedCount = localStorageManager.deleteTransactions(selectedTransactions)
+        console.log(`📦 ${deletedCount} local işlem silindi`)
 
-      const response = await fetch("/api/transactions/batch-delete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ids: selectedTransactions,
-        }),
-      })
-
-      const responseText = await response.text()
-      console.log("Silme işlemi yanıtı:", responseText)
-
-      let data
-      try {
-        data = JSON.parse(responseText)
-      } catch (e) {
-        throw new Error(`API yanıtı geçerli JSON değil: ${responseText}`)
-      }
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText} - ${data.error || "Bilinmeyen hata"}`)
-      }
-
-      if (data.success) {
-        // İşlem başarılı, seçili işlemleri sıfırla ve işlemleri yeniden getir
+        // Seçili işlemleri sıfırla ve işlemleri yeniden getir
         setSelectedTransactions([])
         setSelectAll(false)
         fetchTransactions()
       } else {
-        setError(data.error || "İşlemler silinirken bir hata oluştu.")
+        // Database'den sil
+        console.log("🗄️ Database'den işlemler siliniyor:", selectedTransactions)
+
+        const response = await fetch("/api/transactions/batch-delete", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ids: selectedTransactions,
+          }),
+        })
+
+        const responseText = await response.text()
+        console.log("🗄️ Silme işlemi yanıtı:", responseText)
+
+        let data
+        try {
+          data = JSON.parse(responseText)
+        } catch (e) {
+          throw new Error(`API yanıtı geçerli JSON değil: ${responseText}`)
+        }
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status} ${response.statusText} - ${data.error || "Bilinmeyen hata"}`)
+        }
+
+        if (data.success) {
+          // İşlem başarılı, seçili işlemleri sıfırla ve işlemleri yeniden getir
+          setSelectedTransactions([])
+          setSelectAll(false)
+          fetchTransactions()
+        } else {
+          setError(data.error || "İşlemler silinirken bir hata oluştu.")
+        }
       }
     } catch (err) {
       console.error("İşlemler silinirken hata:", err)
@@ -529,9 +610,10 @@ const TransactionsTab = () => {
 
   // İlk yükleme
   useEffect(() => {
+    console.log("🔄 TransactionsTab useEffect - useLocalStorage:", useLocalStorage)
     fetchTransactions()
     fetchCategories()
-  }, [])
+  }, [useLocalStorage]) // useLocalStorage değiştiğinde yeniden yükle
 
   // Filtreler değiştiğinde işlemleri filtrele
   useEffect(() => {
@@ -545,6 +627,13 @@ const TransactionsTab = () => {
 
   return (
     <div className="space-y-6">
+      {/* Veri kaynağı göstergesi */}
+      <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border">
+        <p className="text-sm text-blue-700 dark:text-blue-300">
+          📊 Veri kaynağı: {useLocalStorage ? "Local Storage (Kişisel)" : "Database (Admin)"}
+        </p>
+      </div>
+
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />

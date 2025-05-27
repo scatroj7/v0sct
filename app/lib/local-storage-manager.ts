@@ -9,6 +9,7 @@ export interface Transaction {
   category_id?: string
   created_at: string
   updated_at: string
+  user_id: string // Kullanıcı ID'si eklendi
 }
 
 export interface Category {
@@ -16,6 +17,7 @@ export interface Category {
   name: string
   type: "income" | "expense"
   color?: string
+  user_id: string // Kullanıcı ID'si eklendi
 }
 
 export interface Budget {
@@ -24,6 +26,7 @@ export interface Budget {
   amount: number
   period: "monthly" | "yearly"
   created_at: string
+  user_id: string // Kullanıcı ID'si eklendi
 }
 
 export interface Investment {
@@ -35,6 +38,7 @@ export interface Investment {
   current_price?: number
   created_at: string
   updated_at: string
+  user_id: string // Kullanıcı ID'si eklendi
 }
 
 export interface Todo {
@@ -45,6 +49,7 @@ export interface Todo {
   completed: boolean
   created_at: string
   updated_at: string
+  user_id: string // Kullanıcı ID'si eklendi
 }
 
 export interface AppData {
@@ -70,6 +75,7 @@ class LocalStorageManager {
   private storageKey = "scatrack_data"
   private backupKey = "scatrack_backup"
   private encryptionKey = "scatrack_2024_secure_key"
+  private currentUserId: string | null = null
 
   static getInstance(): LocalStorageManager {
     if (!LocalStorageManager.instance) {
@@ -78,16 +84,39 @@ class LocalStorageManager {
     return LocalStorageManager.instance
   }
 
-  // Veri yükleme
+  // Aktif kullanıcıyı ayarla
+  setCurrentUser(userId: string): void {
+    this.currentUserId = userId
+  }
+
+  // Aktif kullanıcıyı al
+  getCurrentUserId(): string | null {
+    return this.currentUserId
+  }
+
+  // Kullanıcıya özel storage key
+  private getUserStorageKey(): string {
+    if (!this.currentUserId) {
+      throw new Error("No user set. Call setCurrentUser() first.")
+    }
+    return `${this.storageKey}_${this.currentUserId}`
+  }
+
+  // Veri yükleme (kullanıcıya özel)
   loadData(): AppData {
     try {
-      if (typeof window === "undefined") {
+      if (typeof window === "undefined" || !this.currentUserId) {
         return this.getDefaultData()
       }
 
-      const encryptedData = localStorage.getItem(this.storageKey)
+      const userStorageKey = this.getUserStorageKey()
+      const encryptedData = localStorage.getItem(userStorageKey)
+
       if (!encryptedData) {
-        return this.getDefaultData()
+        // İlk kez giriş yapan kullanıcı için default data oluştur
+        const defaultData = this.getDefaultData()
+        this.saveData(defaultData)
+        return defaultData
       }
 
       const decryptedData = this.decrypt(encryptedData)
@@ -106,10 +135,10 @@ class LocalStorageManager {
     }
   }
 
-  // Veri kaydetme
+  // Veri kaydetme (kullanıcıya özel)
   saveData(data: AppData): boolean {
     try {
-      if (typeof window === "undefined") {
+      if (typeof window === "undefined" || !this.currentUserId) {
         return false
       }
 
@@ -120,9 +149,10 @@ class LocalStorageManager {
         totalTransactions: data.transactions.length,
       }
 
-      // Veriyi şifrele ve kaydet
+      // Veriyi şifrele ve kullanıcıya özel kaydet
+      const userStorageKey = this.getUserStorageKey()
       const encryptedData = this.encrypt(JSON.stringify(data))
-      localStorage.setItem(this.storageKey, encryptedData)
+      localStorage.setItem(userStorageKey, encryptedData)
 
       // Backup oluştur
       this.createBackup(data)
@@ -135,11 +165,16 @@ class LocalStorageManager {
   }
 
   // Transaction işlemleri
-  addTransaction(transaction: Omit<Transaction, "id" | "created_at" | "updated_at">): Transaction {
+  addTransaction(transaction: Omit<Transaction, "id" | "created_at" | "updated_at" | "user_id">): Transaction {
+    if (!this.currentUserId) {
+      throw new Error("No user set")
+    }
+
     const data = this.loadData()
     const newTransaction: Transaction = {
       ...transaction,
       id: uuidv4(),
+      user_id: this.currentUserId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
@@ -152,7 +187,7 @@ class LocalStorageManager {
 
   updateTransaction(id: string, updates: Partial<Transaction>): Transaction | null {
     const data = this.loadData()
-    const index = data.transactions.findIndex((t) => t.id === id)
+    const index = data.transactions.findIndex((t) => t.id === id && t.user_id === this.currentUserId)
 
     if (index === -1) {
       return null
@@ -171,7 +206,7 @@ class LocalStorageManager {
   deleteTransaction(id: string): boolean {
     const data = this.loadData()
     const initialLength = data.transactions.length
-    data.transactions = data.transactions.filter((t) => t.id !== id)
+    data.transactions = data.transactions.filter((t) => !(t.id === id && t.user_id === this.currentUserId))
 
     if (data.transactions.length < initialLength) {
       this.saveData(data)
@@ -184,7 +219,7 @@ class LocalStorageManager {
   deleteTransactions(ids: string[]): number {
     const data = this.loadData()
     const initialLength = data.transactions.length
-    data.transactions = data.transactions.filter((t) => !ids.includes(t.id))
+    data.transactions = data.transactions.filter((t) => !(ids.includes(t.id) && t.user_id === this.currentUserId))
 
     const deletedCount = initialLength - data.transactions.length
     if (deletedCount > 0) {
@@ -201,7 +236,7 @@ class LocalStorageManager {
     categoryId?: string
   }): Transaction[] {
     const data = this.loadData()
-    let transactions = [...data.transactions]
+    let transactions = data.transactions.filter((t) => t.user_id === this.currentUserId)
 
     if (filters) {
       if (filters.startDate) {
@@ -222,11 +257,16 @@ class LocalStorageManager {
   }
 
   // Category işlemleri
-  addCategory(category: Omit<Category, "id">): Category {
+  addCategory(category: Omit<Category, "id" | "user_id">): Category {
+    if (!this.currentUserId) {
+      throw new Error("No user set")
+    }
+
     const data = this.loadData()
     const newCategory: Category = {
       ...category,
       id: uuidv4(),
+      user_id: this.currentUserId,
     }
 
     data.categories.push(newCategory)
@@ -237,18 +277,25 @@ class LocalStorageManager {
 
   getCategories(type?: "income" | "expense"): Category[] {
     const data = this.loadData()
+    const categories = data.categories.filter((c) => c.user_id === this.currentUserId)
+
     if (type) {
-      return data.categories.filter((c) => c.type === type)
+      return categories.filter((c) => c.type === type)
     }
-    return data.categories
+    return categories
   }
 
   // Investment işlemleri
-  addInvestment(investment: Omit<Investment, "id" | "created_at" | "updated_at">): Investment {
+  addInvestment(investment: Omit<Investment, "id" | "created_at" | "updated_at" | "user_id">): Investment {
+    if (!this.currentUserId) {
+      throw new Error("No user set")
+    }
+
     const data = this.loadData()
     const newInvestment: Investment = {
       ...investment,
       id: uuidv4(),
+      user_id: this.currentUserId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
@@ -261,7 +308,7 @@ class LocalStorageManager {
 
   updateInvestment(id: string, updates: Partial<Investment>): Investment | null {
     const data = this.loadData()
-    const index = data.investments.findIndex((i) => i.id === id)
+    const index = data.investments.findIndex((i) => i.id === id && i.user_id === this.currentUserId)
 
     if (index === -1) {
       return null
@@ -280,7 +327,7 @@ class LocalStorageManager {
   deleteInvestment(id: string): boolean {
     const data = this.loadData()
     const initialLength = data.investments.length
-    data.investments = data.investments.filter((i) => i.id !== id)
+    data.investments = data.investments.filter((i) => !(i.id === id && i.user_id === this.currentUserId))
 
     if (data.investments.length < initialLength) {
       this.saveData(data)
@@ -292,15 +339,20 @@ class LocalStorageManager {
 
   getInvestments(): Investment[] {
     const data = this.loadData()
-    return data.investments
+    return data.investments.filter((i) => i.user_id === this.currentUserId)
   }
 
   // Budget işlemleri
-  addBudget(budget: Omit<Budget, "id" | "created_at">): Budget {
+  addBudget(budget: Omit<Budget, "id" | "created_at" | "user_id">): Budget {
+    if (!this.currentUserId) {
+      throw new Error("No user set")
+    }
+
     const data = this.loadData()
     const newBudget: Budget = {
       ...budget,
       id: uuidv4(),
+      user_id: this.currentUserId,
       created_at: new Date().toISOString(),
     }
 
@@ -312,15 +364,20 @@ class LocalStorageManager {
 
   getBudgets(): Budget[] {
     const data = this.loadData()
-    return data.budgets
+    return data.budgets.filter((b) => b.user_id === this.currentUserId)
   }
 
   // Todo işlemleri
-  addTodo(todo: Omit<Todo, "id" | "created_at" | "updated_at">): Todo {
+  addTodo(todo: Omit<Todo, "id" | "created_at" | "updated_at" | "user_id">): Todo {
+    if (!this.currentUserId) {
+      throw new Error("No user set")
+    }
+
     const data = this.loadData()
     const newTodo: Todo = {
       ...todo,
       id: uuidv4(),
+      user_id: this.currentUserId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
@@ -332,7 +389,7 @@ class LocalStorageManager {
 
   updateTodo(id: string, updates: Partial<Todo>): Todo | null {
     const data = this.loadData()
-    const index = data.todos.findIndex((t) => t.id === id)
+    const index = data.todos.findIndex((t) => t.id === id && t.user_id === this.currentUserId)
 
     if (index === -1) {
       return null
@@ -351,7 +408,7 @@ class LocalStorageManager {
   deleteTodo(id: string): boolean {
     const data = this.loadData()
     const initialLength = data.todos.length
-    data.todos = data.todos.filter((t) => t.id !== id)
+    data.todos = data.todos.filter((t) => !(t.id === id && t.user_id === this.currentUserId))
 
     if (data.todos.length < initialLength) {
       this.saveData(data)
@@ -362,7 +419,7 @@ class LocalStorageManager {
 
   getTodos(): Todo[] {
     const data = this.loadData()
-    return data.todos
+    return data.todos.filter((t) => t.user_id === this.currentUserId)
   }
 
   // Veri yönetimi
@@ -388,12 +445,12 @@ class LocalStorageManager {
 
   clearAllData(): boolean {
     try {
-      if (typeof window === "undefined") {
+      if (typeof window === "undefined" || !this.currentUserId) {
         return false
       }
 
-      localStorage.removeItem(this.storageKey)
-      localStorage.removeItem(this.backupKey)
+      const userStorageKey = this.getUserStorageKey()
+      localStorage.removeItem(userStorageKey)
       return true
     } catch (error) {
       console.error("Error clearing data:", error)
@@ -404,6 +461,9 @@ class LocalStorageManager {
   // Backup işlemleri
   private createBackup(data: AppData): void {
     try {
+      if (!this.currentUserId) return
+
+      const backupKey = `${this.backupKey}_${this.currentUserId}`
       const backups = this.getBackups()
       const newBackup = {
         id: uuidv4(),
@@ -419,7 +479,7 @@ class LocalStorageManager {
       }
 
       const encryptedBackups = this.encrypt(JSON.stringify(backups))
-      localStorage.setItem(this.backupKey, encryptedBackups)
+      localStorage.setItem(backupKey, encryptedBackups)
     } catch (error) {
       console.error("Error creating backup:", error)
     }
@@ -427,11 +487,12 @@ class LocalStorageManager {
 
   getBackups(): Array<{ id: string; data: AppData; timestamp: string }> {
     try {
-      if (typeof window === "undefined") {
+      if (typeof window === "undefined" || !this.currentUserId) {
         return []
       }
 
-      const encryptedBackups = localStorage.getItem(this.backupKey)
+      const backupKey = `${this.backupKey}_${this.currentUserId}`
+      const encryptedBackups = localStorage.getItem(backupKey)
       if (!encryptedBackups) {
         return []
       }
@@ -463,21 +524,25 @@ class LocalStorageManager {
 
   // Yardımcı metodlar
   private getDefaultData(): AppData {
+    if (!this.currentUserId) {
+      throw new Error("No user set")
+    }
+
     return {
       transactions: [],
       categories: [
-        { id: "cat-1", name: "Gıda", type: "expense", color: "#ef4444" },
-        { id: "cat-2", name: "Barınma", type: "expense", color: "#f97316" },
-        { id: "cat-3", name: "Ulaşım", type: "expense", color: "#eab308" },
-        { id: "cat-4", name: "Eğlence", type: "expense", color: "#22c55e" },
-        { id: "cat-5", name: "Sağlık", type: "expense", color: "#06b6d4" },
-        { id: "cat-6", name: "Giyim", type: "expense", color: "#8b5cf6" },
-        { id: "cat-7", name: "Eğitim", type: "expense", color: "#ec4899" },
-        { id: "cat-8", name: "Diğer Gider", type: "expense", color: "#6b7280" },
-        { id: "cat-9", name: "Maaş", type: "income", color: "#10b981" },
-        { id: "cat-10", name: "Ek Gelir", type: "income", color: "#3b82f6" },
-        { id: "cat-11", name: "Yatırım", type: "income", color: "#8b5cf6" },
-        { id: "cat-12", name: "Diğer Gelir", type: "income", color: "#06b6d4" },
+        { id: "cat-1", name: "Gıda", type: "expense", color: "#ef4444", user_id: this.currentUserId },
+        { id: "cat-2", name: "Barınma", type: "expense", color: "#f97316", user_id: this.currentUserId },
+        { id: "cat-3", name: "Ulaşım", type: "expense", color: "#eab308", user_id: this.currentUserId },
+        { id: "cat-4", name: "Eğlence", type: "expense", color: "#22c55e", user_id: this.currentUserId },
+        { id: "cat-5", name: "Sağlık", type: "expense", color: "#06b6d4", user_id: this.currentUserId },
+        { id: "cat-6", name: "Giyim", type: "expense", color: "#8b5cf6", user_id: this.currentUserId },
+        { id: "cat-7", name: "Eğitim", type: "expense", color: "#ec4899", user_id: this.currentUserId },
+        { id: "cat-8", name: "Diğer Gider", type: "expense", color: "#6b7280", user_id: this.currentUserId },
+        { id: "cat-9", name: "Maaş", type: "income", color: "#10b981", user_id: this.currentUserId },
+        { id: "cat-10", name: "Ek Gelir", type: "income", color: "#3b82f6", user_id: this.currentUserId },
+        { id: "cat-11", name: "Yatırım", type: "income", color: "#8b5cf6", user_id: this.currentUserId },
+        { id: "cat-12", name: "Diğer Gelir", type: "income", color: "#06b6d4", user_id: this.currentUserId },
       ],
       budgets: [],
       investments: [],
@@ -509,25 +574,46 @@ class LocalStorageManager {
   }
 
   private encrypt(data: string): string {
-    // Basit XOR şifreleme
-    let encrypted = ""
-    for (let i = 0; i < data.length; i++) {
-      encrypted += String.fromCharCode(
-        data.charCodeAt(i) ^ this.encryptionKey.charCodeAt(i % this.encryptionKey.length),
-      )
+    try {
+      // UTF-8 karakterleri güvenli hale getir
+      const utf8Data = encodeURIComponent(data)
+
+      // Basit XOR şifreleme
+      let encrypted = ""
+      for (let i = 0; i < utf8Data.length; i++) {
+        encrypted += String.fromCharCode(
+          utf8Data.charCodeAt(i) ^ this.encryptionKey.charCodeAt(i % this.encryptionKey.length),
+        )
+      }
+      return btoa(encrypted)
+    } catch (error) {
+      console.error("Encryption error:", error)
+      // Şifreleme başarısız olursa, veriyi olduğu gibi döndür
+      return btoa(encodeURIComponent(data))
     }
-    return btoa(encrypted)
   }
 
   private decrypt(encryptedData: string): string {
-    const data = atob(encryptedData)
-    let decrypted = ""
-    for (let i = 0; i < data.length; i++) {
-      decrypted += String.fromCharCode(
-        data.charCodeAt(i) ^ this.encryptionKey.charCodeAt(i % this.encryptionKey.length),
-      )
+    try {
+      const data = atob(encryptedData)
+      let decrypted = ""
+      for (let i = 0; i < data.length; i++) {
+        decrypted += String.fromCharCode(
+          data.charCodeAt(i) ^ this.encryptionKey.charCodeAt(i % this.encryptionKey.length),
+        )
+      }
+      // UTF-8 karakterleri geri çevir
+      return decodeURIComponent(decrypted)
+    } catch (error) {
+      console.error("Decryption error:", error)
+      // Şifre çözme başarısız olursa, veriyi olduğu gibi çöz
+      try {
+        return decodeURIComponent(atob(encryptedData))
+      } catch (fallbackError) {
+        console.error("Fallback decryption error:", fallbackError)
+        return "{}"
+      }
     }
-    return decrypted
   }
 
   // İstatistikler
@@ -541,11 +627,13 @@ class LocalStorageManager {
   } {
     const data = this.loadData()
 
-    const totalIncome = data.transactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
+    const userTransactions = data.transactions.filter((t) => t.user_id === this.currentUserId)
+    const userCategories = data.categories.filter((c) => c.user_id === this.currentUserId)
+    const userInvestments = data.investments.filter((i) => i.user_id === this.currentUserId)
 
-    const totalExpense = data.transactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0)
-
-    const investmentValue = data.investments.reduce(
+    const totalIncome = userTransactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
+    const totalExpense = userTransactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0)
+    const investmentValue = userInvestments.reduce(
       (sum, i) => sum + i.quantity * (i.current_price || i.purchase_price),
       0,
     )
@@ -554,8 +642,8 @@ class LocalStorageManager {
       totalIncome,
       totalExpense,
       balance: totalIncome - totalExpense,
-      transactionCount: data.transactions.length,
-      categoryCount: data.categories.length,
+      transactionCount: userTransactions.length,
+      categoryCount: userCategories.length,
       investmentValue,
     }
   }
