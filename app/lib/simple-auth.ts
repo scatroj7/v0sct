@@ -5,14 +5,14 @@ export interface User {
   id: string
   name: string
   email: string
-  isAdmin: boolean
+  isAdmin?: boolean
 }
 
 // Demo kullanıcılar
 const DEMO_USERS = [
   {
     id: "1",
-    name: "Admin User",
+    name: "Hüseyin",
     email: "huseyin97273@gmail.com",
     password: "huseyin97273@gmail.com",
     isAdmin: true,
@@ -48,7 +48,10 @@ export function registerUser(name: string, email: string, password: string): Use
   // Local storage'a kaydet
   const users = getStoredUsers()
   users.push({ ...newUser, password })
-  localStorage.setItem("users", JSON.stringify(users))
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem("users", JSON.stringify(users))
+  }
 
   return newUser
 }
@@ -58,19 +61,56 @@ export function isEmailRegistered(email: string): boolean {
   return users.some((u) => u.email === email) || DEMO_USERS.some((u) => u.email === email)
 }
 
+// Local storage'a kullanıcı kaydet
 export function saveUserToLocal(user: User): void {
-  localStorage.setItem("currentUser", JSON.stringify(user))
+  if (typeof window !== "undefined") {
+    localStorage.setItem("currentUser", JSON.stringify(user))
+    localStorage.setItem("scatrack_logged_in", "true")
+  }
 }
 
-export function getCurrentUser(): User | null {
-  if (typeof window === "undefined") return null
+// Local storage'dan kullanıcı al
+export function getUserFromLocal(): User | null {
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem("currentUser")
+    const isLoggedIn = localStorage.getItem("scatrack_logged_in")
 
-  const stored = localStorage.getItem("currentUser")
-  return stored ? JSON.parse(stored) : null
+    if (stored && isLoggedIn === "true") {
+      try {
+        return JSON.parse(stored)
+      } catch (error) {
+        console.error("Error parsing user data:", error)
+        return null
+      }
+    }
+  }
+  return null
 }
 
+// Kullanıcı giriş yapmış mı kontrol et
+export function isUserLoggedIn(): boolean {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("scatrack_logged_in") === "true"
+  }
+  return false
+}
+
+// Çıkış yap
+export function logoutUser(): void {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("currentUser")
+    localStorage.removeItem("scatrack_logged_in")
+  }
+}
+
+// Eski fonksiyon adı için alias
 export function logout(): void {
-  localStorage.removeItem("currentUser")
+  logoutUser()
+}
+
+// Eski fonksiyon adı için alias
+export function getCurrentUser(): User | null {
+  return getUserFromLocal()
 }
 
 function getStoredUsers(): any[] {
