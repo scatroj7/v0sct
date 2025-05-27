@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -9,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { registerUser, saveUserToLocal, isEmailRegistered } from "@/app/lib/simple-auth"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -17,7 +17,6 @@ export default function RegisterPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,35 +24,29 @@ export default function RegisterPage() {
     setError("")
 
     try {
-      // Basit doğrulama
-      if (!name || !email || !password) {
-        setError("Tüm alanları doldurun.")
+      if (password.length < 6) {
+        setError("Şifre en az 6 karakter olmalıdır.")
         setIsLoading(false)
         return
       }
 
-      if (password !== confirmPassword) {
-        setError("Şifreler eşleşmiyor.")
+      if (isEmailRegistered(email)) {
+        setError("Bu email adresi zaten kayıtlı.")
         setIsLoading(false)
         return
       }
 
-      // Oturum verilerini oluştur
-      const sessionData = {
-        id: "new-user-id",
-        email: email,
-        name: name,
+      const user = registerUser(name, email, password)
+      if (user) {
+        saveUserToLocal(user)
+        router.push("/panel")
+      } else {
+        setError("Kayıt sırasında bir hata oluştu.")
       }
-
-      // Çerezi güvenli bir şekilde ayarla - encodeURIComponent kullanarak
-      const encodedSessionData = encodeURIComponent(JSON.stringify(sessionData))
-      document.cookie = `session=${encodedSessionData}; path=/; max-age=86400;`
-
-      // Panel sayfasına yönlendir
-      router.push("/panel")
     } catch (error) {
-      console.error("Kayıt hatası:", error)
+      console.error("Register hatası:", error)
       setError("Kayıt sırasında bir hata oluştu.")
+    } finally {
       setIsLoading(false)
     }
   }
@@ -64,7 +57,7 @@ export default function RegisterPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold dark:text-white">Kayıt Ol</CardTitle>
           <CardDescription className="dark:text-gray-400">
-            Yeni bir hesap oluşturarak finanslarınızı takip etmeye başlayın.
+            Yeni hesap oluşturarak finanslarınızı takip etmeye başlayın.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleRegister}>
@@ -78,7 +71,7 @@ export default function RegisterPage() {
               <Input
                 id="name"
                 type="text"
-                placeholder="Ad Soyad"
+                placeholder="Adınızı girin"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -108,22 +101,9 @@ export default function RegisterPage() {
               <Input
                 id="password"
                 type="password"
+                placeholder="En az 6 karakter"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
-                className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="dark:text-gray-300">
-                Şifre Tekrar
-              </Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               />
@@ -134,7 +114,7 @@ export default function RegisterPage() {
               className="w-full dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
               disabled={isLoading}
             >
-              {isLoading ? "Kayıt Yapılıyor..." : "Kayıt Ol"}
+              {isLoading ? "Kayıt Oluşturuluyor..." : "Kayıt Ol"}
             </Button>
           </CardContent>
         </form>

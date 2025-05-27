@@ -5,53 +5,32 @@ export async function GET(request: NextRequest) {
   try {
     console.log("🔄 Transactions API çağrıldı")
 
-    // Admin kontrolü - eğer admin ise tüm verileri göster
+    // Admin kontrolü - query parameter ile
     const url = new URL(request.url)
     const isAdmin = url.searchParams.get("admin") === "true"
 
-    let transactions
-    if (isAdmin) {
-      console.log("👑 Admin kullanıcısı - tüm transactions alınıyor")
-      transactions = await sql`
-        SELECT 
-          t.id,
-          t.description,
-          t.amount,
-          t.category_id,
-          c.name as category_name,
-          c.color as category_color,
-          t.date,
-          t.type,
-          t.user_id,
-          t.created_at
-        FROM transactions t
-        LEFT JOIN categories c ON t.category_id = c.id
-        ORDER BY t.date DESC, t.created_at DESC
-      `
-    } else {
-      console.log("👤 Normal kullanıcı - user_id filtrelemesi yapılıyor")
-      transactions = await sql`
-        SELECT 
-          t.id,
-          t.description,
-          t.amount,
-          t.category_id,
-          c.name as category_name,
-          c.color as category_color,
-          t.date,
-          t.type,
-          t.user_id,
-          t.created_at
-        FROM transactions t
-        LEFT JOIN categories c ON t.category_id = c.id
-        ORDER BY t.date DESC, t.created_at DESC
-      `
-    }
+    console.log("👑 Admin kontrolü:", isAdmin)
+
+    // Tüm transactions'ları getir (admin kontrolü frontend'de yapılıyor)
+    const transactions = await sql`
+      SELECT 
+        t.id,
+        t.description,
+        t.amount,
+        t.category_id,
+        c.name as category_name,
+        c.color as category_color,
+        t.date,
+        t.type,
+        t.user_id,
+        t.created_at
+      FROM transactions t
+      LEFT JOIN categories c ON t.category_id = c.id
+      ORDER BY t.date DESC, t.created_at DESC
+    `
 
     console.log("✅ Transactions alındı:", transactions.length)
-    console.log("📋 İlk 3 transaction:", transactions.slice(0, 3))
 
-    // Summary-tab bileşeninin beklediği format
     return NextResponse.json({
       success: true,
       transactions: transactions,
@@ -78,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     const result = await sql`
       INSERT INTO transactions (description, amount, category_id, date, type, user_id, created_at)
-      VALUES (${description}, ${amount}, ${category_id}, ${date}, ${type}, ${user_id}, NOW())
+      VALUES (${description}, ${amount}, ${category_id}, ${date}, ${type}, ${user_id || "admin"}, NOW())
       RETURNING *
     `
 

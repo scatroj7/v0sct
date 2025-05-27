@@ -8,39 +8,23 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url)
     const isAdmin = url.searchParams.get("admin") === "true"
 
-    let todos
-    if (isAdmin) {
-      console.log("👑 Admin kullanıcısı - tüm todos alınıyor")
-      todos = await sql`
-        SELECT 
-          id,
-          title,
-          description,
-          completed,
-          priority,
-          due_date,
-          user_id,
-          created_at,
-          updated_at
-        FROM todos 
-        ORDER BY created_at DESC
-      `
-    } else {
-      todos = await sql`
-        SELECT 
-          id,
-          title,
-          description,
-          completed,
-          priority,
-          due_date,
-          user_id,
-          created_at,
-          updated_at
-        FROM todos 
-        ORDER BY created_at DESC
-      `
-    }
+    console.log("👑 Admin kontrolü:", isAdmin)
+
+    // Tüm todos'ları getir
+    const todos = await sql`
+      SELECT 
+        id,
+        title,
+        description,
+        completed,
+        priority,
+        due_date,
+        user_id,
+        created_at,
+        updated_at
+      FROM todos 
+      ORDER BY created_at DESC
+    `
 
     console.log("✅ Todos alındı:", todos.length)
     return NextResponse.json(todos)
@@ -59,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const result = await sql`
       INSERT INTO todos (title, description, completed, priority, due_date, user_id, created_at, updated_at)
-      VALUES (${title}, ${description}, ${completed || false}, ${priority || "medium"}, ${due_date}, ${user_id}, NOW(), NOW())
+      VALUES (${title}, ${description}, ${completed || false}, ${priority || "medium"}, ${due_date}, ${user_id || "admin"}, NOW(), NOW())
       RETURNING *
     `
 

@@ -1,137 +1,81 @@
-// Basit local authentication - sadece kayıt olan kullanıcılar
+// Basit local storage tabanlı auth sistemi
+// JWT kullanmıyor!
+
 export interface User {
   id: string
   name: string
   email: string
-  createdAt: string
+  isAdmin: boolean
 }
 
-// Local storage'da kullanıcı bilgilerini sakla
-export function saveUserToLocal(user: User): void {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("scatrack_user", JSON.stringify(user))
-    localStorage.setItem("scatrack_logged_in", "true")
-  }
-}
-
-// Local storage'dan kullanıcı bilgilerini al
-export function getUserFromLocal(): User | null {
-  if (typeof window !== "undefined") {
-    const userStr = localStorage.getItem("scatrack_user")
-    const isLoggedIn = localStorage.getItem("scatrack_logged_in")
-
-    if (userStr && isLoggedIn === "true") {
-      try {
-        return JSON.parse(userStr)
-      } catch (error) {
-        console.error("Error parsing user data:", error)
-        return null
-      }
-    }
-  }
-  return null
-}
-
-// Kullanıcı giriş yapmış mı kontrol et
-export function isUserLoggedIn(): boolean {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("scatrack_logged_in") === "true"
-  }
-  return false
-}
-
-// Kullanıcı çıkışı
-export function logoutUser(): void {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("scatrack_user")
-    localStorage.removeItem("scatrack_logged_in")
-  }
-}
-
-// Giriş kontrolü - sadece kayıtlı kullanıcılar
-export function validateCredentials(email: string, password: string): User | null {
-  const registeredUsers = getRegisteredUsers()
-  const user = registeredUsers.find((u) => u.email === email && u.password === password)
-
-  if (user) {
-    const { password: _, ...userWithoutPassword } = user
-    return userWithoutPassword
-  }
-
-  return null
-}
-
-// Yeni kullanıcı kayıt (local)
-export function registerUser(name: string, email: string, password: string): User | null {
-  // Email zaten kayıtlı mı kontrol et
-  const existingUsers = getRegisteredUsers()
-  const emailExists = existingUsers.some((u) => u.email === email)
-
-  if (emailExists) {
-    return null // Email zaten kullanımda
-  }
-
-  const newUser: User = {
-    id: `user-${Date.now()}`,
-    name,
-    email,
-    createdAt: new Date().toISOString(),
-  }
-
-  // Local storage'a kaydet
-  existingUsers.push({ ...newUser, password })
-
-  if (typeof window !== "undefined") {
-    localStorage.setItem("scatrack_registered_users", JSON.stringify(existingUsers))
-  }
-
-  return newUser
-}
-
-// Önceden tanımlı admin hesapları ekle
-const PREDEFINED_USERS = [
+// Demo kullanıcılar
+const DEMO_USERS = [
   {
-    id: "admin-huseyin",
-    name: "Hüseyin",
+    id: "1",
+    name: "Admin User",
     email: "huseyin97273@gmail.com",
-    password: "huseyin97273@gmail.com", // Kullanıcının istediği şifre
-    createdAt: "2024-01-01T00:00:00.000Z",
+    password: "huseyin97273@gmail.com",
     isAdmin: true,
   },
 ]
 
-// Kayıtlı kullanıcıları al
-function getRegisteredUsers(): Array<User & { password: string }> {
-  if (typeof window !== "undefined") {
-    const usersStr = localStorage.getItem("scatrack_registered_users")
-    let localUsers = []
-
-    if (usersStr) {
-      try {
-        localUsers = JSON.parse(usersStr)
-      } catch (error) {
-        console.error("Error parsing registered users:", error)
-      }
+export function validateCredentials(email: string, password: string): User | null {
+  const user = DEMO_USERS.find((u) => u.email === email && u.password === password)
+  if (user) {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
     }
-
-    // Önceden tanımlı kullanıcıları ekle (eğer yoksa)
-    const allUsers = [...PREDEFINED_USERS]
-
-    // Local kullanıcıları ekle (çakışma olmaması için email kontrolü)
-    localUsers.forEach((localUser: any) => {
-      const exists = allUsers.some((u) => u.email === localUser.email)
-      if (!exists) {
-        allUsers.push(localUser)
-      }
-    })
-
-    return allUsers
   }
-  return PREDEFINED_USERS
+  return null
 }
 
-// Email kontrolü
+export function loginUser(email: string, password: string): User | null {
+  return validateCredentials(email, password)
+}
+
+export function registerUser(name: string, email: string, password: string): User | null {
+  // Basit kayıt sistemi
+  const newUser: User = {
+    id: Date.now().toString(),
+    name,
+    email,
+    isAdmin: false,
+  }
+
+  // Local storage'a kaydet
+  const users = getStoredUsers()
+  users.push({ ...newUser, password })
+  localStorage.setItem("users", JSON.stringify(users))
+
+  return newUser
+}
+
 export function isEmailRegistered(email: string): boolean {
-  const users = getRegisteredUsers()
-  return users.some((u) => u.email === email)
+  const users = getStoredUsers()
+  return users.some((u) => u.email === email) || DEMO_USERS.some((u) => u.email === email)
+}
+
+export function saveUserToLocal(user: User): void {
+  localStorage.setItem("currentUser", JSON.stringify(user))
+}
+
+export function getCurrentUser(): User | null {
+  if (typeof window === "undefined") return null
+
+  const stored = localStorage.getItem("currentUser")
+  return stored ? JSON.parse(stored) : null
+}
+
+export function logout(): void {
+  localStorage.removeItem("currentUser")
+}
+
+function getStoredUsers(): any[] {
+  if (typeof window === "undefined") return []
+
+  const stored = localStorage.getItem("users")
+  return stored ? JSON.parse(stored) : []
 }

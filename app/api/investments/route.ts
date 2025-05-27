@@ -8,39 +8,23 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url)
     const isAdmin = url.searchParams.get("admin") === "true"
 
-    let investments
-    if (isAdmin) {
-      console.log("👑 Admin kullanıcısı - tüm investments alınıyor")
-      investments = await sql`
-        SELECT 
-          id,
-          symbol,
-          name,
-          amount,
-          purchase_price,
-          current_price,
-          user_id,
-          created_at,
-          updated_at
-        FROM investments 
-        ORDER BY created_at DESC
-      `
-    } else {
-      investments = await sql`
-        SELECT 
-          id,
-          symbol,
-          name,
-          amount,
-          purchase_price,
-          current_price,
-          user_id,
-          created_at,
-          updated_at
-        FROM investments 
-        ORDER BY created_at DESC
-      `
-    }
+    console.log("👑 Admin kontrolü:", isAdmin)
+
+    // Tüm investments'ları getir
+    const investments = await sql`
+      SELECT 
+        id,
+        symbol,
+        name,
+        amount,
+        purchase_price,
+        current_price,
+        user_id,
+        created_at,
+        updated_at
+      FROM investments 
+      ORDER BY created_at DESC
+    `
 
     console.log("✅ Investments alındı:", investments.length)
     return NextResponse.json(investments)
@@ -59,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const result = await sql`
       INSERT INTO investments (symbol, name, amount, purchase_price, current_price, user_id, created_at, updated_at)
-      VALUES (${symbol}, ${name}, ${amount}, ${purchase_price}, ${current_price}, ${user_id}, NOW(), NOW())
+      VALUES (${symbol}, ${name}, ${amount}, ${purchase_price}, ${current_price}, ${user_id || "admin"}, NOW(), NOW())
       RETURNING *
     `
 

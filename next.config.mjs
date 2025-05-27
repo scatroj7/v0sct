@@ -1,20 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // output: 'export', // Bu satırı kaldırıyoruz - database kullanan uygulamalar static olamaz
-  trailingSlash: true,
-  images: {
-    unoptimized: true,
-  },
-  experimental: {
-    serverComponentsExternalPackages: ['@neondatabase/serverless'],
-  },
+  serverExternalPackages: ['@neondatabase/serverless'],
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
-  // assetPrefix kaldırıldı çünkü static export yok
-};
+  images: {
+    unoptimized: true,
+  },
+  experimental: {
+    // serverComponentsExternalPackages kaldırıldı
+  },
+}
 
-export default nextConfig;
+export default nextConfig
