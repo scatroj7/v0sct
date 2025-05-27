@@ -21,6 +21,7 @@ import { tr } from "date-fns/locale"
 import { Pencil, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NexusDatePicker } from "@/components/ui/nexus-date-picker"
+import { localStorageManager } from "@/app/lib/local-storage-manager"
 
 interface Todo {
   id: number
@@ -63,30 +64,11 @@ const TodosTab = () => {
   const fetchTodos = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("/api/todos")
-      if (!response.ok) {
-        throw new Error("Failed to fetch todos")
-      }
-      const data = await response.json()
-
-      // Ensure todos is always an array
-      let todosArray: Todo[] = []
-
-      if (data && Array.isArray(data)) {
-        todosArray = data
-      } else if (data && typeof data === "object" && data.todos && Array.isArray(data.todos)) {
-        todosArray = data.todos
-      } else if (data && typeof data === "object" && data.data && Array.isArray(data.data)) {
-        todosArray = data.data
-      } else {
-        console.warn("Unexpected todos data format:", data)
-        todosArray = []
-      }
-
-      setTodos(todosArray)
+      const data = localStorageManager.loadData()
+      setTodos(data.todos || [])
     } catch (error) {
       console.error("Error fetching todos:", error)
-      setTodos([]) // Set to empty array on error
+      setTodos([])
       toast({
         title: "Hata",
         description: "Yapılacak işler getirilirken hata oluştu",
@@ -104,31 +86,19 @@ const TodosTab = () => {
   // Handle adding a new todo
   const handleAddTodo = async () => {
     try {
-      const response = await fetch("/api/todos", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: newTodo.title,
-          description: newTodo.description || null,
-          due_date: newTodo.due_date ? newTodo.due_date.toISOString() : null,
-        }),
+      const newTodoItem = localStorageManager.addTodo({
+        title: newTodo.title,
+        description: newTodo.description || null,
+        due_date: newTodo.due_date ? newTodo.due_date.toISOString() : null,
+        completed: false,
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to add todo")
-      }
-
-      // Reset form and close dialog
       setNewTodo({
         title: "",
         description: "",
         due_date: null,
       })
       setIsAddDialogOpen(false)
-
-      // Refresh todos
       fetchTodos()
 
       toast({
@@ -148,24 +118,14 @@ const TodosTab = () => {
   // Handle editing a todo
   const handleEditTodo = async () => {
     try {
-      const response = await fetch(`/api/todos/${editTodo.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: editTodo.title,
-          description: editTodo.description || null,
-          due_date: editTodo.due_date ? editTodo.due_date.toISOString() : null,
-          completed: editTodo.completed,
-        }),
+      localStorageManager.updateTodo({
+        id: editTodo.id,
+        title: editTodo.title,
+        description: editTodo.description || null,
+        due_date: editTodo.due_date ? editTodo.due_date.toISOString() : null,
+        completed: editTodo.completed,
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to update todo")
-      }
-
-      // Close dialog and refresh todos
       setIsEditDialogOpen(false)
       fetchTodos()
 
@@ -190,15 +150,8 @@ const TodosTab = () => {
     }
 
     try {
-      const response = await fetch(`/api/todos/${id}`, {
-        method: "DELETE",
-      })
+      localStorageManager.deleteTodo(id)
 
-      if (!response.ok) {
-        throw new Error("Failed to delete todo")
-      }
-
-      // Refresh todos
       fetchTodos()
 
       toast({
@@ -218,22 +171,11 @@ const TodosTab = () => {
   // Handle toggling todo completion status
   const handleToggleComplete = async (todo: Todo) => {
     try {
-      const response = await fetch(`/api/todos/${todo.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...todo,
-          completed: !todo.completed,
-        }),
+      localStorageManager.updateTodo({
+        ...todo,
+        completed: !todo.completed,
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to update todo")
-      }
-
-      // Refresh todos
       fetchTodos()
     } catch (error) {
       console.error("Error updating todo:", error)

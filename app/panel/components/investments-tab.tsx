@@ -63,6 +63,38 @@ type Investment = {
 type SortField = "name" | "category" | "amount" | "purchase_price" | "current_price" | "profit" | "profit_percentage"
 type SortDirection = "asc" | "desc" | null
 
+// Local Storage Manager
+const localStorageManager = {
+  saveData: (data: { investments: Investment[] }) => {
+    localStorage.setItem("investmentsData", JSON.stringify(data))
+  },
+  loadData: (): { investments: Investment[] } => {
+    const data = localStorage.getItem("investmentsData")
+    return data ? JSON.parse(data) : { investments: [] }
+  },
+  clearData: () => {
+    localStorage.removeItem("investmentsData")
+  },
+  addItem: (item: Investment) => {
+    const data = localStorageManager.loadData()
+    data.investments.push(item)
+    localStorageManager.saveData(data)
+  },
+  updateItem: (updatedItem: Investment) => {
+    const data = localStorageManager.loadData()
+    const index = data.investments.findIndex((item) => item.id === updatedItem.id)
+    if (index !== -1) {
+      data.investments[index] = updatedItem
+      localStorageManager.saveData(data)
+    }
+  },
+  deleteItem: (id: string) => {
+    const data = localStorageManager.loadData()
+    data.investments = data.investments.filter((item) => item.id !== id)
+    localStorageManager.saveData(data)
+  },
+}
+
 export default function InvestmentsTab() {
   const { toast } = useToast()
   const [investments, setInvestments] = useState<Investment[]>([])
@@ -248,10 +280,10 @@ export default function InvestmentsTab() {
   const ensureInvestmentsTable = async () => {
     try {
       console.log("Yatırımlar tablosunun varlığı kontrol ediliyor...")
-      const response = await fetch("/api/setup-investments-table")
-      if (!response.ok) {
-        throw new Error("Yatırımlar tablosu oluşturulurken bir hata oluştu")
-      }
+      // const response = await fetch("/api/setup-investments-table")
+      // if (!response.ok) {
+      //   throw new Error("Yatırımlar tablosu oluşturulurken bir hata oluştu")
+      // }
       console.log("Yatırımlar tablosu hazır")
       return true
     } catch (error) {
@@ -283,11 +315,8 @@ export default function InvestmentsTab() {
   const fetchInvestments = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/investments")
-      if (!response.ok) throw new Error("Yatırımlar yüklenirken bir hata oluştu")
-
-      const data = await response.json()
-      setInvestments(data)
+      const data = localStorageManager.loadData()
+      setInvestments(data.investments || [])
       setLastUpdated(new Date())
     } catch (error) {
       console.error("Yatırımlar yüklenirken hata:", error)
@@ -304,11 +333,11 @@ export default function InvestmentsTab() {
   const refreshPrices = async () => {
     setRefreshing(true)
     try {
-      const response = await fetch("/api/investments")
-      if (!response.ok) throw new Error("Fiyatlar güncellenirken bir hata oluştu")
+      // const response = await fetch("/api/investments")
+      // if (!response.ok) throw new Error("Fiyatlar güncellenirken bir hata oluştu")
 
-      const data = await response.json()
-      setInvestments(data)
+      // const data = await response.json()
+      // setInvestments(data)
       setLastUpdated(new Date())
 
       toast({
@@ -393,7 +422,8 @@ export default function InvestmentsTab() {
         finalSymbol = formData.type // Altın ve döviz için tür değerini sembol olarak kullan
       }
 
-      const payload = {
+      const newInvestment: Investment = {
+        id: crypto.randomUUID(),
         name: formData.name,
         category: formData.category,
         type: formData.type,
@@ -402,16 +432,13 @@ export default function InvestmentsTab() {
         symbol: finalSymbol,
         purchase_date: formData.purchase_date.toISOString().split("T")[0],
         notes: formData.notes || null,
+        user_id: "local",
+        last_updated: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }
 
-      const response = await fetch("/api/investments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      if (!response.ok) throw new Error("Yatırım eklenirken bir hata oluştu")
-
+      localStorageManager.addItem(newInvestment)
       await fetchInvestments()
       setOpenAddDialog(false)
       resetForm()
@@ -442,7 +469,8 @@ export default function InvestmentsTab() {
         finalSymbol = formData.type // Altın ve döviz için tür değerini sembol olarak kullan
       }
 
-      const payload = {
+      const updatedInvestment: Investment = {
+        ...currentInvestment,
         name: formData.name,
         category: formData.category,
         type: formData.type,
@@ -451,16 +479,10 @@ export default function InvestmentsTab() {
         symbol: finalSymbol,
         purchase_date: formData.purchase_date.toISOString().split("T")[0],
         notes: formData.notes || null,
+        updated_at: new Date().toISOString(),
       }
 
-      const response = await fetch(`/api/investments/${currentInvestment.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      if (!response.ok) throw new Error("Yatırım güncellenirken bir hata oluştu")
-
+      localStorageManager.updateItem(updatedInvestment)
       await fetchInvestments()
       setOpenEditDialog(false)
       setCurrentInvestment(null)
@@ -474,7 +496,7 @@ export default function InvestmentsTab() {
       console.error("Yatırım güncellenirken hata:", error)
       toast({
         title: "Hata",
-        description: "Yatırım güncellenirken bir sorun oluştu",
+        description: error instanceof Error ? error.message : "Yatırım güncellenirken bir sorun oluştu",
         variant: "destructive",
       })
     }
@@ -484,36 +506,7 @@ export default function InvestmentsTab() {
     try {
       console.log("Yatırım silme işlemi başladı, ID:", id)
 
-      const response = await fetch(`/api/investments/${id}`, {
-        method: "DELETE",
-      })
-
-      console.log("API yanıtı alındı:", {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries()),
-      })
-
-      // Content-Type kontrolü
-      const contentType = response.headers.get("content-type")
-      console.log("Content-Type:", contentType)
-
-      let responseData
-      if (contentType && contentType.includes("application/json")) {
-        responseData = await response.json()
-        console.log("JSON yanıt verisi:", responseData)
-      } else {
-        // JSON değilse text olarak oku
-        const textResponse = await response.text()
-        console.log("Text yanıt:", textResponse)
-        throw new Error(`Sunucu hatası: ${response.status} - ${textResponse.substring(0, 100)}`)
-      }
-
-      if (!response.ok) {
-        throw new Error(responseData.error || responseData.message || "Yatırım silinirken bir hata oluştu")
-      }
-
+      localStorageManager.deleteItem(id)
       await fetchInvestments()
 
       toast({
@@ -1017,9 +1010,7 @@ export default function InvestmentsTab() {
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                       <AlertDialogCancel>İptal</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => handleDeleteInvestment(investment.id)}>
-                                        Sil
-                                      </AlertDialogAction>
+                                      <AlertDialogAction>Sil</AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>

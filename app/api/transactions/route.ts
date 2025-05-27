@@ -1,68 +1,68 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@/app/lib/db-server"
-import { getUserIdFromSession } from "@/app/lib/auth"
-import { v4 as uuidv4 } from "uuid"
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("İşlemler getiriliyor...")
-    const userId = getUserIdFromSession()
+    console.log("🔄 Transactions API çağrıldı")
 
-    if (!userId) {
-      console.log("Oturum bulunamadı, userId:", userId)
-      return NextResponse.json({ success: false, message: "Oturum bulunamadı" }, { status: 401 })
-    }
+    // Admin kontrolü - eğer admin ise tüm verileri göster
+    const url = new URL(request.url)
+    const isAdmin = url.searchParams.get("admin") === "true"
 
-    console.log("Kullanıcı ID:", userId)
-
-    // URL parametrelerini al
-    const { searchParams } = new URL(request.url)
-    const startDate = searchParams.get("startDate")
-    const endDate = searchParams.get("endDate")
-    const categoryId = searchParams.get("categoryId")
-    const type = searchParams.get("type")
-    const limit = searchParams.get("limit") ? Number.parseInt(searchParams.get("limit") as string) : 100
-
-    console.log("Filtreler:", { startDate, endDate, categoryId, type, limit })
-
-    // Farklı filtre kombinasyonları için ayrı sorgular
     let transactions
-
-    try {
-      // Hiçbir filtre yoksa
+    if (isAdmin) {
+      console.log("👑 Admin kullanıcısı - tüm transactions alınıyor")
       transactions = await sql`
-        SELECT t.*, c.name as category_name, c.color as category_color
+        SELECT 
+          t.id,
+          t.description,
+          t.amount,
+          t.category_id,
+          c.name as category_name,
+          c.color as category_color,
+          t.date,
+          t.type,
+          t.user_id,
+          t.created_at
         FROM transactions t
         LEFT JOIN categories c ON t.category_id = c.id
-        WHERE t.user_id = ${userId}
-        ORDER BY t.date DESC
-        LIMIT ${limit}
+        ORDER BY t.date DESC, t.created_at DESC
       `
-      console.log(`${transactions.length} işlem bulundu`)
-    } catch (dbError) {
-      console.error("Veritabanı sorgusu çalıştırılırken hata:", dbError)
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Veritabanı sorgusu çalıştırılırken bir hata oluştu",
-          error: dbError instanceof Error ? dbError.message : String(dbError),
-        },
-        { status: 500 },
-      )
+    } else {
+      console.log("👤 Normal kullanıcı - user_id filtrelemesi yapılıyor")
+      transactions = await sql`
+        SELECT 
+          t.id,
+          t.description,
+          t.amount,
+          t.category_id,
+          c.name as category_name,
+          c.color as category_color,
+          t.date,
+          t.type,
+          t.user_id,
+          t.created_at
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        ORDER BY t.date DESC, t.created_at DESC
+      `
     }
 
-    // Yanıt formatını summary-tab bileşeninin beklediği şekilde düzenle
+    console.log("✅ Transactions alındı:", transactions.length)
+    console.log("📋 İlk 3 transaction:", transactions.slice(0, 3))
+
+    // Summary-tab bileşeninin beklediği format
     return NextResponse.json({
       success: true,
       transactions: transactions,
     })
   } catch (error) {
-    console.error("İşlemler getirilirken hata:", error)
+    console.error("❌ Transactions API error:", error)
     return NextResponse.json(
       {
         success: false,
-        message: "İşlemler getirilirken bir hata oluştu",
-        error: error instanceof Error ? error.message : String(error),
+        error: "Failed to fetch transactions",
+        message: error.message,
       },
       { status: 500 },
     )
@@ -71,103 +71,29 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("Yeni işlem ekleniyor...")
-    const userId = getUserIdFromSession()
-
-    if (!userId) {
-      console.log("Oturum bulunamadı, userId:", userId)
-      return NextResponse.json({ success: false, message: "Oturum bulunamadı" }, { status: 401 })
-    }
-
-    // İstek gövdesini al
     const body = await request.json()
-    console.log("İstek gövdesi:", body)
+    console.log("➕ Yeni transaction ekleniyor:", body)
 
-    // Gerekli alanları kontrol et
-    if (!body.amount || !body.date || !body.type) {
-      console.log("Eksik alanlar:", { amount: body.amount, date: body.date, type: body.type })
-      return NextResponse.json({ success: false, message: "Tutar, tarih ve tür alanları zorunludur" }, { status: 400 })
-    }
+    const { description, amount, category_id, date, type, user_id } = body
 
-    // Sayısal değer kontrolü
-    const amount = Number.parseFloat(body.amount)
-    if (isNaN(amount)) {
-      console.log("Geçersiz tutar:", body.amount)
-      return NextResponse.json({ success: false, message: "Tutar geçerli bir sayı olmalıdır" }, { status: 400 })
-    }
+    const result = await sql`
+      INSERT INTO transactions (description, amount, category_id, date, type, user_id, created_at)
+      VALUES (${description}, ${amount}, ${category_id}, ${date}, ${type}, ${user_id}, NOW())
+      RETURNING *
+    `
 
-    try {
-      // UUID oluştur
-      const transactionId = uuidv4()
-      console.log("Oluşturulan UUID:", transactionId)
-
-      // Yeni işlem ekle - UUID ile
-      console.log("SQL sorgusu çalıştırılıyor...")
-      const result = await sql`
-        INSERT INTO transactions (
-          id,
-          user_id, 
-          amount, 
-          date, 
-          description, 
-          category_id, 
-          type
-        ) 
-        VALUES (
-          ${transactionId},
-          ${userId}, 
-          ${amount}, 
-          ${body.date}, 
-          ${body.description || null}, 
-          ${body.category_id || null}, 
-          ${body.type}
-        )
-        RETURNING *
-      `
-
-      console.log("İşlem başarıyla eklendi:", result[0])
-
-      // Kategori bilgisini getir
-      let categoryName = null
-      let categoryColor = null
-
-      if (body.category_id) {
-        const categoryResult = await sql`
-          SELECT name, color FROM categories WHERE id = ${body.category_id}
-        `
-        if (categoryResult.length > 0) {
-          categoryName = categoryResult[0].name
-          categoryColor = categoryResult[0].color
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: "İşlem başarıyla eklendi",
-        transaction: {
-          ...result[0],
-          category_name: categoryName,
-          category_color: categoryColor,
-        },
-      })
-    } catch (dbError) {
-      console.error("Veritabanı sorgusu çalıştırılırken hata:", dbError)
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Veritabanı sorgusu çalıştırılırken bir hata oluştu",
-          error: dbError instanceof Error ? dbError.message : String(dbError),
-        },
-        { status: 500 },
-      )
-    }
+    console.log("✅ Transaction eklendi:", result[0])
+    return NextResponse.json({
+      success: true,
+      transaction: result[0],
+    })
   } catch (error) {
-    console.error("İşlem eklenirken hata:", error)
+    console.error("❌ Transaction add error:", error)
     return NextResponse.json(
       {
         success: false,
-        message: "İşlem eklenirken bir hata oluştu",
-        error: error instanceof Error ? error.message : String(error),
+        error: "Failed to add transaction",
+        message: error.message,
       },
       { status: 500 },
     )
