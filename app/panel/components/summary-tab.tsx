@@ -643,6 +643,17 @@ const SummaryTab = ({ useLocalStorage = true }: SummaryTabProps) => {
                       <Tooltip
                         formatter={(value) => formatCurrency(Number(value))}
                         labelFormatter={(label) => `${label}`}
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                          color: "hsl(var(--foreground))",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                        labelStyle={{
+                          color: "hsl(var(--foreground))",
+                          fontWeight: "600",
+                        }}
                       />
                       <Legend />
                       <Bar dataKey="income" name="Gelir" fill="#4ade80" />
@@ -690,7 +701,16 @@ const SummaryTab = ({ useLocalStorage = true }: SummaryTabProps) => {
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                         </Pie>
-                        <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                        <Tooltip
+                          formatter={(value) => formatCurrency(Number(value))}
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                            color: "hsl(var(--foreground))",
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                          }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
@@ -732,7 +752,16 @@ const SummaryTab = ({ useLocalStorage = true }: SummaryTabProps) => {
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                         </Pie>
-                        <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                        <Tooltip
+                          formatter={(value) => formatCurrency(Number(value))}
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                            color: "hsl(var(--foreground))",
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                          }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
