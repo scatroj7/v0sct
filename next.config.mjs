@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // output: 'export', // Bu satırı kaldırıyoruz - database kullanan uygulamalar static olamaz
   trailingSlash: true,
   images: {
     unoptimized: true,
@@ -14,7 +14,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  assetPrefix: process.env.NODE_ENV === 'production' ? '' : '',
+  // assetPrefix kaldırıldı çünkü static export yok
 };
 
 export default nextConfig;
