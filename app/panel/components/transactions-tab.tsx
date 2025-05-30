@@ -159,55 +159,24 @@ const TransactionsTab = ({ useLocalStorage = true }: TransactionsTabProps) => {
       setLoading(true)
       setError(null)
 
-      console.log("🔍 fetchTransactions - useLocalStorage prop değeri:", useLocalStorage)
+      console.log("📦 SADECE LOCAL STORAGE kullanılıyor - API çağrısı yapılmayacak")
 
-      // ZORUNLU KONTROL: Normal kullanıcılar için sadece local storage
-      if (useLocalStorage === true) {
-        console.log("📦 ZORUNLU LOCAL STORAGE - API çağrısı yapılmayacak")
-        // Local storage'dan veri al
-        const localTransactions = localStorageManager.getTransactions()
+      // Local storage'dan veri al
+      const localTransactions = localStorageManager.getTransactions()
 
-        // Kategori isimlerini ekle
-        const categories = localStorageManager.getCategories()
-        const transactionsWithCategories = localTransactions.map((transaction) => ({
-          ...transaction,
-          category_name: categories.find((cat) => cat.id === transaction.category_id)?.name || "Bilinmeyen",
-          category_color: categories.find((cat) => cat.id === transaction.category_id)?.color,
-        }))
+      // Kategori isimlerini ekle
+      const categories = localStorageManager.getCategories()
+      const transactionsWithCategories = localTransactions.map((transaction) => ({
+        ...transaction,
+        category_name: categories.find((cat) => cat.id === transaction.category_id)?.name || "Bilinmeyen",
+        category_color: categories.find((cat) => cat.id === transaction.category_id)?.color,
+      }))
 
-        setAllTransactions(transactionsWithCategories)
-        setTransactions(transactionsWithCategories)
-        console.log(`📦 ${transactionsWithCategories.length} local işlem alındı`)
+      setAllTransactions(transactionsWithCategories)
+      setTransactions(transactionsWithCategories)
+      console.log(`📦 ${transactionsWithCategories.length} local işlem alındı`)
 
-        filterTransactions(transactionsWithCategories)
-        return // ERKEN ÇIKIŞ - API çağrısı yapma
-      }
-
-      // Sadece admin kullanıcılar için database
-      console.log("🗄️ Database'den işlemler alınıyor...")
-      const response = await fetch("/api/transactions")
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-
-      if (data.success && data.transactions) {
-        const parsedTransactions = data.transactions.map((transaction: any) => ({
-          ...transaction,
-          amount: Number.parseFloat(transaction.amount) || 0,
-        }))
-
-        setAllTransactions(parsedTransactions)
-        setTransactions(parsedTransactions)
-        console.log(`🗄️ ${parsedTransactions.length} database işlem alındı`)
-
-        filterTransactions(parsedTransactions)
-      } else {
-        console.error("Beklenmeyen API yanıt formatı:", data)
-        setError("İşlemler beklenmeyen bir formatta alındı.")
-      }
+      filterTransactions(transactionsWithCategories)
     } catch (err) {
       console.error("İşlemler getirilirken hata:", err)
       setError(`İşlemler yüklenirken bir hata oluştu: ${err instanceof Error ? err.message : String(err)}`)
@@ -219,53 +188,21 @@ const TransactionsTab = ({ useLocalStorage = true }: TransactionsTabProps) => {
   // Kategorileri getir
   const fetchCategories = async () => {
     try {
-      console.log("🔍 fetchCategories - useLocalStorage prop değeri:", useLocalStorage)
+      console.log("📦 SADECE LOCAL STORAGE - Kategoriler API çağrısı yapılmayacak")
 
-      // ZORUNLU KONTROL: Normal kullanıcılar için sadece local storage
-      if (useLocalStorage === true) {
-        console.log("📦 ZORUNLU LOCAL STORAGE - Kategoriler API çağrısı yapılmayacak")
-        const localCategories = localStorageManager.getCategories()
+      const localCategories = localStorageManager.getCategories()
 
-        setCategories(localCategories)
+      setCategories(localCategories)
 
-        const income = localCategories.filter((cat) => cat.type === "income")
-        const expense = localCategories.filter((cat) => cat.type === "expense")
+      const income = localCategories.filter((cat) => cat.type === "income")
+      const expense = localCategories.filter((cat) => cat.type === "expense")
 
-        setIncomeCategories(income)
-        setExpenseCategories(expense)
+      setIncomeCategories(income)
+      setExpenseCategories(expense)
 
-        console.log(
-          `📦 ${localCategories.length} local kategori alındı (${income.length} gelir, ${expense.length} gider)`,
-        )
-        return // ERKEN ÇIKIŞ - API çağrısı yapma
-      }
-
-      // Sadece admin kullanıcılar için database
-      console.log("🗄️ Database'den kategoriler alınıyor...")
-      const response = await fetch("/api/categories")
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-
-      if (data.success && data.categories) {
-        setCategories(data.categories)
-
-        const income = data.categories.filter((cat: Category) => cat.type === "income")
-        const expense = data.categories.filter((cat: Category) => cat.type === "expense")
-
-        setIncomeCategories(income)
-        setExpenseCategories(expense)
-
-        console.log(
-          `🗄️ ${data.categories.length} database kategori alındı (${income.length} gelir, ${expense.length} gider)`,
-        )
-      } else {
-        console.error("Beklenmeyen API yanıt formatı:", data)
-        setError("Kategoriler beklenmeyen bir formatta alındı.")
-      }
+      console.log(
+        `📦 ${localCategories.length} local kategori alındı (${income.length} gelir, ${expense.length} gider)`,
+      )
     } catch (err) {
       console.error("Kategoriler getirilirken hata:", err)
       setError(`Kategoriler yüklenirken bir hata oluştu: ${err instanceof Error ? err.message : String(err)}`)
@@ -283,55 +220,18 @@ const TransactionsTab = ({ useLocalStorage = true }: TransactionsTabProps) => {
         return
       }
 
-      if (useLocalStorage) {
-        // Local storage'a ekle
-        console.log("📦 Local storage'a işlem ekleniyor...")
-        const transactionData = {
-          amount: Number.parseFloat(newTransaction.amount),
-          description: newTransaction.description,
-          type: newTransaction.type as "income" | "expense",
-          category_id: newTransaction.category_id,
-          date: format(newTransaction.date, "yyyy-MM-dd"),
-        }
-
-        localStorageManager.addTransaction(transactionData)
-        console.log("📦 Local storage'a işlem eklendi")
-      } else {
-        // Database'e ekle
-        console.log("🗄️ Database'e işlem ekleniyor...")
-        const requestBody = {
-          ...newTransaction,
-          amount: Number.parseFloat(newTransaction.amount),
-          date: format(newTransaction.date, "yyyy-MM-dd"),
-        }
-
-        const response = await fetch("/api/transactions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        })
-
-        const responseText = await response.text()
-        console.log("🗄️ Database işlem ekleme yanıtı:", responseText)
-
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status} ${response.statusText}`)
-        }
-
-        let data
-        try {
-          data = JSON.parse(responseText)
-        } catch (e) {
-          throw new Error(`API yanıtı geçerli JSON değil: ${responseText}`)
-        }
-
-        if (!data.success) {
-          setError(data.message || "İşlem eklenirken bir hata oluştu.")
-          return
-        }
+      // SADECE local storage kullan - API çağrısı yapma
+      console.log("📦 Local storage'a işlem ekleniyor...")
+      const transactionData = {
+        amount: Number.parseFloat(newTransaction.amount),
+        description: newTransaction.description,
+        type: newTransaction.type as "income" | "expense",
+        category_id: newTransaction.category_id,
+        date: format(newTransaction.date, "yyyy-MM-dd"),
       }
+
+      localStorageManager.addTransaction(transactionData)
+      console.log("📦 Local storage'a işlem eklendi")
 
       // Formu sıfırla ve işlemleri yeniden getir
       setNewTransaction({

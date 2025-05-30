@@ -55,9 +55,12 @@ export async function POST(request: NextRequest) {
 
     const { description, amount, category_id, date, type, user_id } = body
 
+    // Generate a UUID for the transaction ID
+    const transactionId = crypto.randomUUID()
+
     const result = await sql`
-      INSERT INTO transactions (description, amount, category_id, date, type, user_id, created_at)
-      VALUES (${description}, ${amount}, ${category_id}, ${date}, ${type}, ${user_id || "admin"}, NOW())
+      INSERT INTO transactions (id, description, amount, category_id, date, type, user_id, created_at)
+      VALUES (${transactionId}, ${description}, ${amount}, ${category_id}, ${date}, ${type}, ${user_id || "admin"}, NOW())
       RETURNING *
     `
 
