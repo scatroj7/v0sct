@@ -10,7 +10,7 @@ import { localStorageManager } from "@/app/lib/local-storage-manager"
 
 // Tab bileşenlerini import et
 import TransactionsTab from "./components/transactions-tab"
-import BudgetsTab from "./components/budgets-tab"
+import ReportsTab from "./components/reports-tab"
 import SummaryTab from "./components/summary-tab"
 import TodosTab from "./components/todos-tab"
 import InvestmentsTab from "./components/investments-tab"
@@ -77,7 +77,7 @@ export default function PanelPage() {
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="summary">Özet</TabsTrigger>
             <TabsTrigger value="transactions">İşlemler</TabsTrigger>
-            <TabsTrigger value="budgets">Bütçeler</TabsTrigger>
+            <TabsTrigger value="reports">Raporlar</TabsTrigger>
             <TabsTrigger value="investments">Yatırımlar</TabsTrigger>
             <TabsTrigger value="todos">Görevler</TabsTrigger>
           </TabsList>
@@ -90,8 +90,8 @@ export default function PanelPage() {
             <TransactionsTab />
           </TabsContent>
 
-          <TabsContent value="budgets">
-            <BudgetsTab />
+          <TabsContent value="reports">
+            <ReportsTab />
           </TabsContent>
 
           <TabsContent value="investments">
