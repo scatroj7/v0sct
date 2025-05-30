@@ -14,13 +14,11 @@ import BudgetsTab from "./components/budgets-tab"
 import SummaryTab from "./components/summary-tab"
 import TodosTab from "./components/todos-tab"
 import InvestmentsTab from "./components/investments-tab"
-import AdminPanel from "./components/admin-panel"
 
 export default function PanelPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [useLocalStorage, setUseLocalStorage] = useState(true) // Default olarak local storage
 
   useEffect(() => {
     const currentUser = getUserFromLocal()
@@ -30,21 +28,12 @@ export default function PanelPage() {
       return
     }
 
-    console.log("👤 Kullanıcı:", currentUser.email, "Admin:", currentUser.isAdmin, "ID:", currentUser.id)
+    console.log("👤 Kullanıcı:", currentUser.email, "ID:", currentUser.id)
     setUser(currentUser)
 
     // Local storage manager'a kullanıcıyı ayarla
     localStorageManager.setCurrentUser(currentUser.id)
     console.log("🔧 Local storage manager kullanıcı ayarlandı:", currentUser.id)
-
-    // Normal kullanıcılar için SADECE local storage
-    if (currentUser.isAdmin) {
-      console.log("👑 Admin kullanıcı - database kullanabilir")
-      setUseLocalStorage(false) // Admin için database
-    } else {
-      console.log("👤 Normal kullanıcı - SADECE local storage")
-      setUseLocalStorage(true) // Normal kullanıcı için SADECE local
-    }
 
     setLoading(false)
   }, [router])
@@ -66,7 +55,7 @@ export default function PanelPage() {
     return null
   }
 
-  console.log("🔄 Panel render - useLocalStorage:", useLocalStorage, "User:", user.email)
+  console.log("🔄 Panel render - User:", user.email)
 
   return (
     <div className="min-h-screen bg-background">
@@ -75,22 +64,13 @@ export default function PanelPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Finans Takip Paneli</h1>
-            <p className="text-muted-foreground">
-              Hoş geldin, {user.name}!{user.isAdmin ? " (Admin - Database)" : " (Local Storage)"}
-            </p>
+            <p className="text-muted-foreground">Hoş geldin, {user.name}!</p>
           </div>
           <Button variant="outline" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             Çıkış Yap
           </Button>
         </div>
-
-        {/* Admin Panel - Sadece admin kullanıcılar için */}
-        {user.isAdmin && (
-          <div className="mb-6">
-            <AdminPanel useLocalStorage={useLocalStorage} onStorageChange={setUseLocalStorage} />
-          </div>
-        )}
 
         {/* Ana Tabs */}
         <Tabs defaultValue="summary" className="space-y-4">
@@ -103,23 +83,23 @@ export default function PanelPage() {
           </TabsList>
 
           <TabsContent value="summary">
-            <SummaryTab useLocalStorage={useLocalStorage} />
+            <SummaryTab />
           </TabsContent>
 
           <TabsContent value="transactions">
-            <TransactionsTab useLocalStorage={useLocalStorage} />
+            <TransactionsTab />
           </TabsContent>
 
           <TabsContent value="budgets">
-            <BudgetsTab useLocalStorage={useLocalStorage} />
+            <BudgetsTab />
           </TabsContent>
 
           <TabsContent value="investments">
-            <InvestmentsTab useLocalStorage={useLocalStorage} />
+            <InvestmentsTab />
           </TabsContent>
 
           <TabsContent value="todos">
-            <TodosTab useLocalStorage={useLocalStorage} />
+            <TodosTab />
           </TabsContent>
         </Tabs>
       </div>

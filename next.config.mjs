@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['@neondatabase/serverless'],
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -9,9 +8,6 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-  },
-  experimental: {
-    // serverComponentsExternalPackages kaldırıldı
   },
 }
 
