@@ -6,13 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon, PlusIcon, Trash2Icon } from "lucide-react"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
-import { format } from "date-fns"
-import type { DateRange } from "react-day-picker"
-import { addDays } from "date-fns"
+import { PlusIcon, Trash2Icon } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import {
   AlertDialog,
@@ -26,6 +20,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { localStorageManager } from "@/app/lib/local-storage-manager"
+import { DatePicker } from "@/components/ui/date-picker"
+import { format } from "date-fns"
+import type { DateRange } from "react-day-picker"
 
 interface Category {
   id: string
@@ -203,7 +200,8 @@ export default function TransactionsTab() {
       filteredTransactions = filteredTransactions.filter((transaction) => {
         const transactionDate = new Date(transaction.date)
         const fromDate = dateRange.from
-        const toDate = addDays(dateRange.to!, 1)
+        const toDate = new Date(dateRange.to)
+        toDate.setHours(23, 59, 59, 999) // Include the end date
 
         return transactionDate >= fromDate && transactionDate <= toDate
       })
@@ -277,38 +275,11 @@ export default function TransactionsTab() {
       {/* Arama ve filtreleme */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <Input type="text" placeholder="Arama..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn("justify-start text-left font-normal", !dateRange?.from && "text-muted-foreground")}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange?.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
-                  </>
-                ) : (
-                  format(dateRange.from, "LLL dd, y")
-                )
-              ) : (
-                <span>Tarih Aralığı Seç</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="range"
-              defaultMonth={dateRange?.from}
-              selected={dateRange}
-              onSelect={setDateRange}
-              disabled={{ after: new Date() }}
-              numberOfMonths={2}
-              pagedNavigation
-            />
-          </PopoverContent>
-        </Popover>
+        <DatePicker
+          date={dateRange?.from}
+          onSelect={(date) => setDateRange(date ? { from: date, to: dateRange?.to } : undefined)}
+          placeholder="Tarih aralığı seçin"
+        />
       </div>
 
       {/* İşlem tablosu */}
@@ -498,31 +469,13 @@ export default function TransactionsTab() {
               <Label htmlFor="date" className="text-right">
                 Tarih
               </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "col-span-3 justify-start text-left font-normal",
-                      !newTransaction.date && "text-muted-foreground",
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {newTransaction.date ? format(newTransaction.date, "dd.MM.yyyy") : <span>Tarih Seç</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    defaultMonth={newTransaction.date}
-                    selected={newTransaction.date}
-                    onSelect={(date) => setNewTransaction({ ...newTransaction, date: date || new Date() })}
-                    disabled={{ after: new Date() }}
-                    numberOfMonths={1}
-                    pagedNavigation
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="col-span-3">
+                <DatePicker
+                  date={newTransaction.date}
+                  onSelect={(date) => setNewTransaction({ ...newTransaction, date: date || new Date() })}
+                  placeholder="Tarih seçin"
+                />
+              </div>
             </div>
           </div>
           <AlertDialogFooter>

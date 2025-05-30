@@ -8,13 +8,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
-import { CalendarIcon, Edit, Plus, Trash2 } from "lucide-react"
-import { format } from "date-fns"
-import { tr } from "date-fns/locale"
+import { Edit, Plus, Trash2 } from "lucide-react"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface Todo {
   id: string
@@ -28,16 +25,16 @@ interface Todo {
 }
 
 const priorityColors = {
-  low: "bg-blue-100 text-blue-800",
-  medium: "bg-yellow-100 text-yellow-800",
-  high: "bg-orange-100 text-orange-800",
-  critical: "bg-red-100 text-red-800",
+  low: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  high: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  critical: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 }
 
 const statusColors = {
-  pending: "bg-gray-100 text-gray-800",
-  "in-progress": "bg-purple-100 text-purple-800",
-  completed: "bg-green-100 text-green-800",
+  pending: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
+  "in-progress": "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
 }
 
 export default function TodosTab() {
@@ -52,7 +49,6 @@ export default function TodosTab() {
     priority: "medium" as "low" | "medium" | "high" | "critical",
     status: "pending" as "pending" | "in-progress" | "completed",
   })
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
   useEffect(() => {
     // Load todos from local storage
@@ -250,7 +246,7 @@ export default function TodosTab() {
                       )}
                       {todo.dueDate && (
                         <p className="text-xs mt-1 text-gray-500">
-                          Bitiş: {format(new Date(todo.dueDate), "dd MMMM yyyy", { locale: tr })}
+                          Bitiş: {new Date(todo.dueDate).toLocaleDateString("tr-TR")}
                         </p>
                       )}
                     </div>
@@ -298,29 +294,11 @@ export default function TodosTab() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="dueDate">Bitiş Tarihi</Label>
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal" id="dueDate">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {newTodo.dueDate ? (
-                        format(newTodo.dueDate, "dd MMMM yyyy", { locale: tr })
-                      ) : (
-                        <span>Tarih seçin</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={newTodo.dueDate || undefined}
-                      onSelect={(date) => {
-                        setNewTodo({ ...newTodo, dueDate: date })
-                        setIsCalendarOpen(false)
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePicker
+                  date={newTodo.dueDate}
+                  onSelect={(date) => setNewTodo({ ...newTodo, dueDate: date })}
+                  placeholder="Bitiş tarihi seçin"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="priority">Öncelik</Label>

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface Investment {
   id: string
@@ -52,7 +53,7 @@ export default function InvestmentsTab() {
     amount: "",
     purchase_price: "",
     symbol: "",
-    purchase_date: new Date().toISOString().split("T")[0],
+    purchase_date: new Date(),
     notes: "",
   })
 
@@ -118,7 +119,7 @@ export default function InvestmentsTab() {
         amount: amount,
         purchase_price: purchase_price,
         symbol: formData.symbol || formData.type,
-        purchase_date: formData.purchase_date,
+        purchase_date: formData.purchase_date.toISOString().split("T")[0],
         notes: formData.notes.trim(),
         user_id: "admin",
       }
@@ -156,7 +157,7 @@ export default function InvestmentsTab() {
       amount: "",
       purchase_price: "",
       symbol: "",
-      purchase_date: new Date().toISOString().split("T")[0],
+      purchase_date: new Date(),
       notes: "",
     })
   }
@@ -562,10 +563,10 @@ export default function InvestmentsTab() {
 
               <div>
                 <label className="text-sm font-medium mb-1 block">Alış Tarihi</label>
-                <Input
-                  type="date"
-                  value={formData.purchase_date}
-                  onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
+                <DatePicker
+                  date={formData.purchase_date}
+                  onSelect={(date) => setFormData({ ...formData, purchase_date: date || new Date() })}
+                  placeholder="Alış tarihini seçin"
                 />
               </div>
             </div>
