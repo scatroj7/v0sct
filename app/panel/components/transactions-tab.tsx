@@ -312,9 +312,9 @@ export default function TransactionsTab() {
       </div>
 
       {/* İşlem tablosu */}
-      <div className="overflow-x-auto bg-white rounded-lg shadow">
+      <div className="overflow-x-auto rounded-lg shadow">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 <Checkbox
@@ -340,7 +340,7 @@ export default function TransactionsTab() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
                 <td colSpan={6} className="px-6 py-4 text-center">
