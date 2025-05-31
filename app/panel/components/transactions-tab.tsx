@@ -275,9 +275,9 @@ export default function TransactionsTab() {
       {/* İşlem tablosu */}
       <div className="overflow-x-auto rounded-lg shadow">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="">
+          <thead>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 <Checkbox
                   checked={selectAll}
                   onCheckedChange={(checked) => {
@@ -290,15 +290,11 @@ export default function TransactionsTab() {
                   }}
                 />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Açıklama
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Kategori
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tutar</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tarih</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Açıklama</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Kategori</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tutar</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tip</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -316,18 +312,18 @@ export default function TransactionsTab() {
               </tr>
             ) : (
               transactions.map((transaction) => (
-                <tr key={transaction.id} className="hover:bg-gray-50">
+                <tr key={transaction.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Checkbox
                       checked={selectedTransactions.includes(transaction.id)}
                       onCheckedChange={() => handleTransactionSelect(transaction.id)}
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {format(new Date(transaction.date), "dd.MM.yyyy")}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{transaction.description}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.description}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center">
                       {transaction.category_name}
                       {transaction.category_color && (
@@ -338,7 +334,7 @@ export default function TransactionsTab() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(transaction.amount)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

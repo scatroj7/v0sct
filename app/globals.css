@@ -105,7 +105,56 @@ button,
   transition: all 0.3s ease;
 }
 
-/* ✅ DARK MODE VE LIGHT MODE İÇİN UYGUN RENKLER */
+/* ✅ TÜM LİSTELER İÇİN ORTAK TABLO STİLLERİ */
+
+/* LIGHT MODE İÇİN TABLO STİLLERİ */
+table tbody tr {
+  @apply bg-transparent;
+}
+
+table tbody tr td {
+  @apply bg-transparent text-gray-800;
+}
+
+/* LIGHT MODE HOVER */
+table tbody tr:hover {
+  background-color: rgba(239, 246, 255, 0.7) !important; /* Light blue with opacity */
+}
+
+table tbody tr:hover td {
+  background-color: rgba(239, 246, 255, 0.7) !important;
+  @apply text-gray-900;
+}
+
+/* DARK MODE İÇİN TABLO STİLLERİ */
+.dark table tbody tr {
+  @apply bg-transparent;
+}
+
+.dark table tbody tr td {
+  @apply bg-transparent text-gray-200;
+}
+
+/* DARK MODE HOVER */
+.dark table tbody tr:hover {
+  background-color: rgba(31, 41, 55, 0.7) !important; /* Dark gray with opacity */
+}
+
+.dark table tbody tr:hover td {
+  background-color: rgba(31, 41, 55, 0.7) !important;
+  @apply text-gray-100;
+}
+
+/* TABLO BAŞLIKLARI */
+table thead th {
+  @apply bg-gray-100 text-gray-700 font-medium;
+}
+
+.dark table thead th {
+  @apply bg-gray-800 text-gray-200 font-medium;
+}
+
+/* YATIRIMLAR TABLOSU İÇİN ESKİ KODLAR - ARTIK GENEL TABLO STİLLERİ KULLANILIYOR */
 
 /* LIGHT MODE İÇİN RENKLER */
 .investments-table tbody tr {
