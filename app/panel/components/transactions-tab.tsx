@@ -8,17 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { PlusIcon, Trash2Icon } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { localStorageManager } from "@/app/lib/local-storage-manager"
 import { DatePicker } from "@/components/ui/date-picker"
 import { format } from "date-fns"
@@ -370,35 +360,18 @@ export default function TransactionsTab() {
       {/* Seçili işlemleri sil */}
       {selectedTransactions.length > 0 && (
         <div className="mt-4">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <Trash2Icon className="mr-2 h-4 w-4" /> Seçili İşlemleri Sil ({selectedTransactions.length})
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Bu işlem geri alınamaz. Seçili işlemleri silmek istediğinizden emin misiniz?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>İptal</AlertDialogCancel>
-                <AlertDialogAction onClick={deleteSelectedTransactions}>Sil</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button variant="destructive" onClick={deleteSelectedTransactions}>
+            <Trash2Icon className="mr-2 h-4 w-4" /> Seçili İşlemleri Sil ({selectedTransactions.length})
+          </Button>
         </div>
       )}
 
-      {/* İşlem ekleme dialogu */}
-      <AlertDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>İşlem Ekle</AlertDialogTitle>
-            <AlertDialogDescription>Yeni bir işlem ekleyin.</AlertDialogDescription>
-          </AlertDialogHeader>
+      {/* İşlem ekleme dialogu - Dialog kullanıyoruz AlertDialog yerine */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>İşlem Ekle</DialogTitle>
+          </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="amount" className="text-right">
@@ -478,14 +451,16 @@ export default function TransactionsTab() {
               </div>
             </div>
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsAddDialogOpen(false)}>İptal</AlertDialogCancel>
-            <AlertDialogAction disabled={isSubmitting} onClick={addTransaction}>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              İptal
+            </Button>
+            <Button disabled={isSubmitting} onClick={addTransaction}>
               {isSubmitting ? "Kaydediliyor..." : "Kaydet"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
