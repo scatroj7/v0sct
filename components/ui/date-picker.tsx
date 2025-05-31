@@ -6,7 +6,6 @@ import { tr } from "date-fns/locale"
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface DatePickerProps {
@@ -19,6 +18,80 @@ interface DatePickerProps {
 
 export function DatePicker({ date, onSelect, placeholder = "Tarih seçin", disabled, className }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
+  const [currentMonth, setCurrentMonth] = React.useState(date || new Date())
+
+  const daysOfWeek = ["Pz", "Pt", "Sa", "Ça", "Pe", "Cu", "Ct"]
+
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const daysInMonth = lastDay.getDate()
+    const startingDayOfWeek = (firstDay.getDay() + 6) % 7 // Monday = 0
+
+    const days = []
+
+    // Previous month's days
+    const prevMonth = new Date(year, month - 1, 0)
+    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+      days.push({
+        date: prevMonth.getDate() - i,
+        isCurrentMonth: false,
+        fullDate: new Date(year, month - 1, prevMonth.getDate() - i),
+      })
+    }
+
+    // Current month's days
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push({
+        date: day,
+        isCurrentMonth: true,
+        fullDate: new Date(year, month, day),
+      })
+    }
+
+    // Next month's days
+    const remainingDays = 42 - days.length
+    for (let day = 1; day <= remainingDays; day++) {
+      days.push({
+        date: day,
+        isCurrentMonth: false,
+        fullDate: new Date(year, month + 1, day),
+      })
+    }
+
+    return days
+  }
+
+  const navigateMonth = (direction: "prev" | "next") => {
+    setCurrentMonth((prev) => {
+      const newDate = new Date(prev)
+      if (direction === "prev") {
+        newDate.setMonth(prev.getMonth() - 1)
+      } else {
+        newDate.setMonth(prev.getMonth() + 1)
+      }
+      return newDate
+    })
+  }
+
+  const selectDate = (selectedDate: Date) => {
+    onSelect?.(selectedDate)
+    setOpen(false)
+  }
+
+  const isSelected = (dayDate: Date) => {
+    if (!date) return false
+    return dayDate.toDateString() === date.toDateString()
+  }
+
+  const isToday = (dayDate: Date) => {
+    const today = new Date()
+    return dayDate.toDateString() === today.toDateString()
+  }
+
+  const days = getDaysInMonth(currentMonth)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -46,64 +119,70 @@ export function DatePicker({ date, onSelect, placeholder = "Tarih seçin", disab
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-auto p-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600"
+        className="w-auto p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600"
         align="start"
       >
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={(selectedDate) => {
-            onSelect?.(selectedDate)
-            setOpen(false)
-          }}
-          disabled={disabled}
-          initialFocus
-          className="dark:bg-gray-800"
-          classNames={{
-            months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-            month: "space-y-4",
-            caption: "flex justify-center items-center pt-1 relative text-gray-900 dark:text-gray-100 px-2",
-            caption_label: "text-sm font-medium text-gray-900 dark:text-gray-100 mx-4",
-            nav: "space-x-1 flex items-center absolute inset-0 justify-between px-2",
-            nav_button: cn(
-              "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "disabled:pointer-events-none disabled:opacity-50",
-              "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8",
-              "dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600",
-            ),
-            nav_button_previous: "z-10",
-            nav_button_next: "z-10",
-            table: "w-full border-collapse space-y-1 mt-4",
-            head_row: "flex w-full justify-between",
-            head_cell:
-              "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] dark:text-gray-400 text-center p-1 flex-1",
-            row: "flex w-full mt-2 justify-between",
-            cell: "h-9 w-9 text-center text-sm p-0 relative flex items-center justify-center flex-1 [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-            day: cn(
-              "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "disabled:pointer-events-none disabled:opacity-50",
-              "h-9 w-9 p-0 font-normal aria-selected:opacity-100 cursor-pointer",
-              "hover:bg-accent hover:text-accent-foreground",
-              "dark:text-gray-100 dark:hover:bg-gray-600 dark:hover:text-gray-100",
-            ),
-            day_range_end: "day-range-end",
-            day_selected:
-              "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700",
-            day_today: "bg-accent text-accent-foreground dark:bg-gray-600 dark:text-gray-100",
-            day_outside:
-              "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30 dark:text-gray-500",
-            day_disabled: "text-muted-foreground opacity-50 dark:text-gray-500",
-            day_range_middle:
-              "aria-selected:bg-accent aria-selected:text-accent-foreground dark:aria-selected:bg-gray-600",
-            day_hidden: "invisible",
-          }}
-          components={{
-            IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
-            IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
-          }}
-        />
+        <div className="space-y-4">
+          {/* Header with navigation */}
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth("prev")}
+              className="h-8 w-8 p-0 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            <h2 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {format(currentMonth, "MMMM yyyy", { locale: tr })}
+            </h2>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth("next")}
+              className="h-8 w-8 p-0 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Days of week header */}
+          <div className="grid grid-cols-7 gap-1">
+            {daysOfWeek.map((day) => (
+              <div
+                key={day}
+                className="h-8 w-8 flex items-center justify-center text-xs font-medium text-gray-500 dark:text-gray-400"
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((day, index) => (
+              <Button
+                key={index}
+                variant="ghost"
+                size="sm"
+                onClick={() => selectDate(day.fullDate)}
+                className={cn(
+                  "h-8 w-8 p-0 font-normal",
+                  !day.isCurrentMonth && "text-gray-400 dark:text-gray-600",
+                  day.isCurrentMonth && "text-gray-900 dark:text-gray-100",
+                  isSelected(day.fullDate) &&
+                    "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white",
+                  isToday(day.fullDate) && !isSelected(day.fullDate) && "bg-gray-100 dark:bg-gray-700",
+                  "hover:bg-gray-100 dark:hover:bg-gray-700",
+                )}
+              >
+                {day.date}
+              </Button>
+            ))}
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   )
