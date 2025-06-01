@@ -42,7 +42,7 @@ export default function TransactionsTab() {
     type: "expense",
     category_id: "",
     date: new Date(),
-    frequency: "once" as "once" | "monthly" | "every3months" | "every6months" | "yearly" | "custom",
+    frequency: "once" as "once" | "monthly" | "every2months" | "every3months" | "every6months" | "yearly" | "custom",
     customCount: "2",
   })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -159,69 +159,50 @@ export default function TransactionsTab() {
         const selectedCategory = categories.find((cat) => cat.id === newTransaction.category_id)
         const categoryName = selectedCategory?.name || "İşlem"
 
-        // Frequency türüne göre ay aralığı
-        const frequencyIntervals = {
-          monthly: 1,
-          every3months: 3,
-          every6months: 6,
-          yearly: 12,
-          custom: 1,
+        // Frequency türüne göre tekrar sayısı
+        const frequencyOptions = {
+          monthly: 2, // 2 tekrar
+          every2months: 3, // 3 tekrar
+          every3months: 6, // 6 tekrar
+          every6months: 12, // 12 tekrar
+          yearly: 24, // 24 tekrar
+          custom: Number.parseInt(newTransaction.customCount) || 2,
         }
-
-        // Frequency türüne göre toplam sayı (yıl sonuna kadar)
-        const currentYear = new Date().getFullYear()
-        const endOfYear = new Date(currentYear, 11, 31) // 31 Aralık
-        const startDate = new Date(newTransaction.date)
 
         let totalCount = 0
         if (newTransaction.frequency === "custom") {
           totalCount = Number.parseInt(newTransaction.customCount) || 2
-        } else {
-          // Yıl sonuna kadar kaç kez tekrarlanacağını hesapla
-          let tempDate = new Date(startDate)
-          while (tempDate <= endOfYear) {
-            totalCount++
-            tempDate = new Date(tempDate)
-            tempDate.setMonth(tempDate.getMonth() + frequencyIntervals[newTransaction.frequency])
-          }
+        } else if (newTransaction.frequency !== "once") {
+          totalCount = frequencyOptions[newTransaction.frequency]
         }
 
-        // İşlemleri oluştur
+        const startDate = newTransaction.date // Declare startDate here
+
+        // İşlemleri oluştur - hem gelir hem gider için aynı mantık
         for (let i = 0; i < totalCount; i++) {
           const transactionDate = new Date(startDate)
 
-          if (newTransaction.frequency === "custom") {
-            // Özel taksit/tekrar için aylık artır
+          if (newTransaction.frequency === "monthly") {
             transactionDate.setMonth(startDate.getMonth() + i)
-          } else {
-            // Diğer seçenekler için belirlenen aralıkta artır
-            transactionDate.setMonth(startDate.getMonth() + i * frequencyIntervals[newTransaction.frequency])
-          }
-
-          // Yıl sonunu geçerse dur (custom hariç)
-          if (newTransaction.frequency !== "custom" && transactionDate > endOfYear) {
-            break
+          } else if (newTransaction.frequency === "every2months") {
+            transactionDate.setMonth(startDate.getMonth() + i * 2)
+          } else if (newTransaction.frequency === "every3months") {
+            transactionDate.setMonth(startDate.getMonth() + i * 3)
+          } else if (newTransaction.frequency === "every6months") {
+            transactionDate.setMonth(startDate.getMonth() + i * 6)
+          } else if (newTransaction.frequency === "yearly") {
+            transactionDate.setMonth(startDate.getMonth() + i * 12)
+          } else if (newTransaction.frequency === "custom") {
+            transactionDate.setMonth(startDate.getMonth() + i)
           }
 
           const monthName = months[transactionDate.getMonth()]
 
           let description = ""
-
-          if (newTransaction.type === "income") {
-            // Gelir için: "Temmuz ayı Prim" formatı
-            if (newTransaction.description && newTransaction.description.trim() !== "") {
-              description = `${monthName} ayı ${newTransaction.description.trim()}`
-            } else {
-              description = `${monthName} ayı ${categoryName}`
-            }
+          if (newTransaction.description && newTransaction.description.trim() !== "") {
+            description = `${i + 1}/${totalCount} ${newTransaction.description.trim()}`
           } else {
-            // Gider için: "5/6 Taksit xxx" formatı
-            const taksitInfo = `${i + 1}/${totalCount} Taksit`
-            if (newTransaction.description && newTransaction.description.trim() !== "") {
-              description = `${taksitInfo} ${newTransaction.description.trim()}`
-            } else {
-              description = `${taksitInfo} ${categoryName}`
-            }
+            description = `${i + 1}/${totalCount} ${categoryName}`
           }
 
           const transactionData = {
@@ -790,40 +771,35 @@ export default function TransactionsTab() {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="frequency" className="text-right">
-                {newTransaction.type === "income" ? "Tekrar" : "Taksit"}
+                Tekrar
               </Label>
               <Select
                 value={newTransaction.frequency}
                 onValueChange={(value) =>
                   setNewTransaction({
                     ...newTransaction,
-                    frequency: value as "once" | "monthly" | "every3months" | "every6months" | "yearly" | "custom",
+                    frequency: value as
+                      | "once"
+                      | "monthly"
+                      | "every2months"
+                      | "every3months"
+                      | "every6months"
+                      | "yearly"
+                      | "custom",
                   })
                 }
               >
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder={newTransaction.type === "income" ? "Tekrar seçin" : "Taksit seçin"} />
+                  <SelectValue placeholder="Tekrar seçin" />
                 </SelectTrigger>
                 <SelectContent>
-                  {newTransaction.type === "income" ? (
-                    <>
-                      <SelectItem value="once">Tek Seferlik</SelectItem>
-                      <SelectItem value="monthly">Aylık</SelectItem>
-                      <SelectItem value="every3months">3 Ayda Bir</SelectItem>
-                      <SelectItem value="every6months">6 Ayda Bir</SelectItem>
-                      <SelectItem value="yearly">12 Ayda Bir</SelectItem>
-                      <SelectItem value="custom">Özel Tekrar</SelectItem>
-                    </>
-                  ) : (
-                    <>
-                      <SelectItem value="once">Tek Çekim</SelectItem>
-                      <SelectItem value="monthly">2 Taksit</SelectItem>
-                      <SelectItem value="every3months">3 Taksit</SelectItem>
-                      <SelectItem value="every6months">6 Taksit</SelectItem>
-                      <SelectItem value="yearly">12 Taksit</SelectItem>
-                      <SelectItem value="custom">Özel Taksit</SelectItem>
-                    </>
-                  )}
+                  <SelectItem value="once">Tek Seferlik</SelectItem>
+                  <SelectItem value="monthly">2 Tekrar (Aylık)</SelectItem>
+                  <SelectItem value="every2months">3 Tekrar (2 Ayda Bir)</SelectItem>
+                  <SelectItem value="every3months">6 Tekrar (3 Ayda Bir)</SelectItem>
+                  <SelectItem value="every6months">12 Tekrar (6 Ayda Bir)</SelectItem>
+                  <SelectItem value="yearly">24 Tekrar (Yıllık)</SelectItem>
+                  <SelectItem value="custom">Özel Tekrar</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -831,7 +807,7 @@ export default function TransactionsTab() {
             {newTransaction.frequency === "custom" && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="customCount" className="text-right">
-                  {newTransaction.type === "income" ? "Tekrar Sayısı" : "Taksit Sayısı"}
+                  Tekrar Sayısı
                 </Label>
                 <Input
                   type="number"
@@ -839,9 +815,9 @@ export default function TransactionsTab() {
                   value={newTransaction.customCount}
                   onChange={(e) => setNewTransaction({ ...newTransaction, customCount: e.target.value })}
                   className="col-span-3"
-                  placeholder={newTransaction.type === "income" ? "Tekrar sayısı" : "Taksit sayısı"}
+                  placeholder="Tekrar sayısı"
                   min="2"
-                  max="24"
+                  max="60"
                 />
               </div>
             )}
