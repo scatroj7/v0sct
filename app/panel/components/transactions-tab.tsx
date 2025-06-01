@@ -56,6 +56,9 @@ export default function TransactionsTab() {
   const { toast } = useToast()
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [dateFilter, setDateFilter] = useState("all")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [typeFilter, setTypeFilter] = useState("all")
 
   // İşlemleri getir
   const fetchTransactions = async () => {
@@ -386,7 +389,48 @@ export default function TransactionsTab() {
       })
     }
 
-    // Tarih aralığına göre filtrele
+    // Tarih filtresi
+    if (dateFilter !== "all") {
+      const now = new Date()
+      let startDate: Date | null = null
+      let endDate: Date | null = null
+
+      switch (dateFilter) {
+        case "thisMonth":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+          break
+        case "lastMonth":
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+          endDate = new Date(now.getFullYear(), now.getMonth(), 0)
+          break
+        case "nextMonth":
+          startDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+          endDate = new Date(now.getFullYear(), now.getMonth() + 2, 0)
+          break
+        case "last6Months":
+          startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+          break
+        case "next6Months":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+          endDate = new Date(now.getFullYear(), now.getMonth() + 6, 0)
+          break
+        case "thisYear":
+          startDate = new Date(now.getFullYear(), 0, 1)
+          endDate = new Date(now.getFullYear(), 11, 31)
+          break
+      }
+
+      if (startDate && endDate) {
+        filteredTransactions = filteredTransactions.filter((transaction) => {
+          const transactionDate = new Date(transaction.date)
+          return transactionDate >= startDate && transactionDate <= endDate
+        })
+      }
+    }
+
+    // Manuel tarih aralığına göre filtrele
     if (dateRange?.from && dateRange?.to) {
       filteredTransactions = filteredTransactions.filter((transaction) => {
         const transactionDate = new Date(transaction.date)
@@ -398,13 +442,23 @@ export default function TransactionsTab() {
       })
     }
 
+    // Kategori filtresi
+    if (categoryFilter !== "all") {
+      filteredTransactions = filteredTransactions.filter((transaction) => transaction.category_id === categoryFilter)
+    }
+
+    // Tip filtresi
+    if (typeFilter !== "all") {
+      filteredTransactions = filteredTransactions.filter((transaction) => transaction.type === typeFilter)
+    }
+
     setTransactions(filteredTransactions)
   }
 
   // Tarih aralığı değiştiğinde filtrele
   useEffect(() => {
     filterTransactions(allTransactions)
-  }, [dateRange, searchTerm, allTransactions])
+  }, [dateRange, searchTerm, dateFilter, categoryFilter, typeFilter, allTransactions])
 
   // İlk yükleme
   useEffect(() => {
@@ -464,13 +518,72 @@ export default function TransactionsTab() {
       </div>
 
       {/* Arama ve filtreleme */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <Input type="text" placeholder="Arama..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+
+        <Select value={dateFilter} onValueChange={setDateFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Tarih filtresi" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm Zamanlar</SelectItem>
+            <SelectItem value="thisMonth">Bu Ay</SelectItem>
+            <SelectItem value="lastMonth">Önceki Ay</SelectItem>
+            <SelectItem value="nextMonth">Sonraki Ay</SelectItem>
+            <SelectItem value="last6Months">Son 6 Ay</SelectItem>
+            <SelectItem value="next6Months">Gelecek 6 Ay</SelectItem>
+            <SelectItem value="thisYear">Bu Yıl</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Kategori filtresi" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm Kategoriler</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                {category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Tip filtresi" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm Tipler</SelectItem>
+            <SelectItem value="income">Gelir</SelectItem>
+            <SelectItem value="expense">Gider</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="mb-4">
+        <Label className="text-sm text-gray-600 mb-2 block">Manuel Tarih Aralığı (Opsiyonel)</Label>
         <DatePicker
           date={dateRange?.from}
           onSelect={(date) => setDateRange(date ? { from: date, to: dateRange?.to } : undefined)}
           placeholder="Tarih aralığı seçin"
         />
+      </div>
+
+      <div className="flex justify-end mb-4">
+        <Button
+          variant="outline"
+          onClick={() => {
+            setSearchTerm("")
+            setDateFilter("all")
+            setCategoryFilter("all")
+            setTypeFilter("all")
+            setDateRange(undefined)
+          }}
+        >
+          Filtreleri Sıfırla
+        </Button>
       </div>
 
       {/* İşlem tablosu */}
