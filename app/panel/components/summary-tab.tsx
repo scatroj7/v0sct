@@ -203,7 +203,7 @@ export default function SummaryTab() {
 
     setAllTransactions(transactionsWithCategories)
     filterTransactions(transactionsWithCategories)
-  }, [])
+  }, [dateFilterType, startDate, endDate])
 
   const calculateSummary = () => {
     if (!transactions || transactions.length === 0) {
@@ -298,8 +298,16 @@ export default function SummaryTab() {
         )}
 
         <div className="flex justify-end">
-          <Button onClick={() => filterTransactions()} variant="outline" className="w-fit">
-            Filtreleri Sıfırla
+          <Button
+            onClick={() => {
+              setDateFilterType("thisMonth")
+              setStartDate(null)
+              setEndDate(null)
+            }}
+            variant="outline"
+            className="w-fit"
+          >
+            Filtreleri Uygula
           </Button>
         </div>
       </div>

@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Download, FileText, Filter, PieChart, TrendingUp } from "lucide-react"
-import { format, subDays, subMonths, startOfMonth, endOfMonth } from "date-fns"
+import { format, subDays, subMonths, startOfMonth, endOfMonth, addMonths } from "date-fns"
 import { tr } from "date-fns/locale"
 import { localStorageManager } from "@/app/lib/local-storage-manager"
 import {
@@ -139,6 +139,10 @@ export default function ReportsTab() {
       case "last6months":
         startDate = subMonths(now, 6)
         endDate = now
+        break
+      case "next6months":
+        startDate = now
+        endDate = addMonths(now, 6)
         break
       case "thisYear":
         startDate = new Date(now.getFullYear(), 0, 1)
@@ -342,6 +346,7 @@ export default function ReportsTab() {
                   <SelectItem value="thisMonth">Bu Ay</SelectItem>
                   <SelectItem value="last3months">Son 3 Ay</SelectItem>
                   <SelectItem value="last6months">Son 6 Ay</SelectItem>
+                  <SelectItem value="next6months">Gelecek 6 Ay</SelectItem>
                   <SelectItem value="thisYear">Bu Yıl</SelectItem>
                   <SelectItem value="all">Tüm Zamanlar</SelectItem>
                 </SelectContent>
