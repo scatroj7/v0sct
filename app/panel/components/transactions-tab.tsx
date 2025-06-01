@@ -42,7 +42,7 @@ export default function TransactionsTab() {
     type: "expense",
     category_id: "",
     date: new Date(),
-    frequency: "once" as "once" | "monthly" | "every2months" | "every3months" | "every6months" | "yearly" | "custom",
+    frequency: "once" as "once" | "monthly" | "every3months" | "every6months" | "yearly" | "custom",
     customCount: "2",
   })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -137,66 +137,40 @@ export default function TransactionsTab() {
         localStorageManager.addTransaction(transactionData)
         console.log("📦 Local storage'a tek seferlik işlem eklendi")
       }
-      // Tekrarlanan/Taksitli işlem
+      // Tekrarlanan işlem
       else {
-        // Ay adları
-        const months = [
-          "Ocak",
-          "Şubat",
-          "Mart",
-          "Nisan",
-          "Mayıs",
-          "Haziran",
-          "Temmuz",
-          "Ağustos",
-          "Eylül",
-          "Ekim",
-          "Kasım",
-          "Aralık",
-        ]
-
         // Kategori adını bul
         const selectedCategory = categories.find((cat) => cat.id === newTransaction.category_id)
         const categoryName = selectedCategory?.name || "İşlem"
 
-        // Frequency türüne göre tekrar sayısı
-        const frequencyOptions = {
-          monthly: 2, // 2 tekrar
-          every2months: 3, // 3 tekrar
-          every3months: 6, // 6 tekrar
-          every6months: 12, // 12 tekrar
-          yearly: 24, // 24 tekrar
-          custom: Number.parseInt(newTransaction.customCount) || 2,
+        // Frequency türüne göre ay aralığı ve tekrar sayısı
+        let intervalMonths = 1
+        const totalCount = Number.parseInt(newTransaction.customCount) || 2
+
+        switch (newTransaction.frequency) {
+          case "monthly":
+            intervalMonths = 1
+            break
+          case "every3months":
+            intervalMonths = 3
+            break
+          case "every6months":
+            intervalMonths = 6
+            break
+          case "yearly":
+            intervalMonths = 12
+            break
+          case "custom":
+            intervalMonths = 1 // Özel seçenekte aylık olarak tekrarla
+            break
         }
 
-        let totalCount = 0
-        if (newTransaction.frequency === "custom") {
-          totalCount = Number.parseInt(newTransaction.customCount) || 2
-        } else if (newTransaction.frequency !== "once") {
-          totalCount = frequencyOptions[newTransaction.frequency]
-        }
+        const startDate = newTransaction.date
 
-        const startDate = newTransaction.date // Declare startDate here
-
-        // İşlemleri oluştur - hem gelir hem gider için aynı mantık
+        // İşlemleri oluştur
         for (let i = 0; i < totalCount; i++) {
           const transactionDate = new Date(startDate)
-
-          if (newTransaction.frequency === "monthly") {
-            transactionDate.setMonth(startDate.getMonth() + i)
-          } else if (newTransaction.frequency === "every2months") {
-            transactionDate.setMonth(startDate.getMonth() + i * 2)
-          } else if (newTransaction.frequency === "every3months") {
-            transactionDate.setMonth(startDate.getMonth() + i * 3)
-          } else if (newTransaction.frequency === "every6months") {
-            transactionDate.setMonth(startDate.getMonth() + i * 6)
-          } else if (newTransaction.frequency === "yearly") {
-            transactionDate.setMonth(startDate.getMonth() + i * 12)
-          } else if (newTransaction.frequency === "custom") {
-            transactionDate.setMonth(startDate.getMonth() + i)
-          }
-
-          const monthName = months[transactionDate.getMonth()]
+          transactionDate.setMonth(startDate.getMonth() + i * intervalMonths)
 
           let description = ""
           if (newTransaction.description && newTransaction.description.trim() !== "") {
@@ -216,9 +190,7 @@ export default function TransactionsTab() {
           localStorageManager.addTransaction(transactionData)
         }
 
-        console.log(
-          `📦 Local storage'a ${totalCount} adet ${newTransaction.type === "income" ? "tekrarlı" : "taksitli"} işlem eklendi`,
-        )
+        console.log(`📦 Local storage'a ${totalCount} adet tekrarlı işlem eklendi`)
       }
 
       // Formu sıfırla ve işlemleri yeniden getir
@@ -778,14 +750,7 @@ export default function TransactionsTab() {
                 onValueChange={(value) =>
                   setNewTransaction({
                     ...newTransaction,
-                    frequency: value as
-                      | "once"
-                      | "monthly"
-                      | "every2months"
-                      | "every3months"
-                      | "every6months"
-                      | "yearly"
-                      | "custom",
+                    frequency: value as "once" | "monthly" | "every3months" | "every6months" | "yearly" | "custom",
                   })
                 }
               >
@@ -794,12 +759,11 @@ export default function TransactionsTab() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="once">Tek Seferlik</SelectItem>
-                  <SelectItem value="monthly">2 Tekrar (Aylık)</SelectItem>
-                  <SelectItem value="every2months">3 Tekrar (2 Ayda Bir)</SelectItem>
-                  <SelectItem value="every3months">6 Tekrar (3 Ayda Bir)</SelectItem>
-                  <SelectItem value="every6months">12 Tekrar (6 Ayda Bir)</SelectItem>
-                  <SelectItem value="yearly">24 Tekrar (Yıllık)</SelectItem>
-                  <SelectItem value="custom">Özel Tekrar</SelectItem>
+                  <SelectItem value="monthly">Her Ay</SelectItem>
+                  <SelectItem value="every3months">3 Ayda 1</SelectItem>
+                  <SelectItem value="every6months">6 Ayda 1</SelectItem>
+                  <SelectItem value="yearly">12 Ayda 1</SelectItem>
+                  <SelectItem value="custom">Özel</SelectItem>
                 </SelectContent>
               </Select>
             </div>
