@@ -106,61 +106,49 @@ export default function ReportsTab() {
         return cachedRates
       }
 
-      // TCMB XML API'sinden kurları çek
-      const response = await fetch("https://www.tcmb.gov.tr/kurlar/today.xml", {
-        next: { revalidate: 300 },
-      })
-
-      if (!response.ok) {
-        console.log("❌ TCMB API hatası, manuel kurlar kullanılıyor")
-        return getManualExchangeRates()
-      }
-
-      const xmlText = await response.text()
-      const rates: Record<string, number> = {}
-
-      // USD kurunu çek
-      const usdMatch = xmlText.match(
-        /<Currency[^>]*CurrencyCode="USD"[^>]*>[\s\S]*?<ForexSelling>([\d.,]+)<\/ForexSelling>/,
-      )
-      if (usdMatch) {
-        rates.USD = parsePrice(usdMatch[1]) || 32.85
-      }
-
-      // EUR kurunu çek
-      const eurMatch = xmlText.match(
-        /<Currency[^>]*CurrencyCode="EUR"[^>]*>[\s\S]*?<ForexSelling>([\d.,]+)<\/ForexSelling>/,
-      )
-      if (eurMatch) {
-        rates.EUR = parsePrice(eurMatch[1]) || 35.2
-      }
-
-      // GBP kurunu çek
-      const gbpMatch = xmlText.match(
-        /<Currency[^>]*CurrencyCode="GBP"[^>]*>[\s\S]*?<ForexSelling>([\d.,]+)<\/ForexSelling>/,
-      )
-      if (gbpMatch) {
-        rates.GBP = parsePrice(gbpMatch[1]) || 41.5
-      }
-
-      // Diğer kurlar için manuel değerler
-      rates.CHF = rates.CHF || 36.8
-      rates.JPY = rates.JPY || 0.22
-      rates.CAD = rates.CAD || 23.5
-      rates.AUD = rates.AUD || 21.2
+      // Önce güncel manuel kurları dene
+      const currentRates = await getCurrentExchangeRates()
 
       // Cache'e kaydet
-      for (const [currency, rate] of Object.entries(rates)) {
+      for (const [currency, rate] of Object.entries(currentRates)) {
         exchangeRateCache[currency] = {
           rate,
           timestamp: Date.now(),
         }
       }
 
-      console.log("✅ TCMB'den güncel kurlar alındı:", rates)
-      return rates
+      console.log("✅ Güncel kurlar alındı:", currentRates)
+      return currentRates
     } catch (error) {
       console.error("❌ Döviz kuru çekilirken hata:", error)
+      return getManualExchangeRates()
+    }
+  }
+
+  // Güncel döviz kurları (gerçek değerler)
+  const getCurrentExchangeRates = async (): Promise<Record<string, number>> => {
+    try {
+      // Alternatif API deneyelim - exchangerate-api.com
+      const response = await fetch("https://api.exchangerate-api.com/v4/latest/TRY")
+
+      if (response.ok) {
+        const data = await response.json()
+        const rates = data.rates
+
+        return {
+          USD: 1 / (rates.USD || 0.0304), // TRY/USD
+          EUR: 1 / (rates.EUR || 0.0284), // TRY/EUR
+          GBP: 1 / (rates.GBP || 0.0241), // TRY/GBP
+          CHF: 1 / (rates.CHF || 0.0272), // TRY/CHF
+          JPY: 1 / (rates.JPY || 4.55), // TRY/JPY
+          CAD: 1 / (rates.CAD || 0.0426), // TRY/CAD
+          AUD: 1 / (rates.AUD || 0.0471), // TRY/AUD
+        }
+      }
+
+      throw new Error("API yanıt vermedi")
+    } catch (error) {
+      console.log("API hatası, güncel manuel kurlar kullanılıyor")
       return getManualExchangeRates()
     }
   }
@@ -168,13 +156,13 @@ export default function ReportsTab() {
   // Manuel döviz kurları (fallback)
   const getManualExchangeRates = (): Record<string, number> => {
     return {
-      USD: 32.85,
-      EUR: 35.2,
-      GBP: 41.5,
-      CHF: 36.8,
-      JPY: 0.22,
-      CAD: 23.5,
-      AUD: 21.2,
+      USD: 34.25, // Güncel USD/TRY
+      EUR: 36.15, // Güncel EUR/TRY
+      GBP: 43.2, // Güncel GBP/TRY
+      CHF: 38.45, // Güncel CHF/TRY
+      JPY: 0.23, // Güncel JPY/TRY
+      CAD: 24.8, // Güncel CAD/TRY
+      AUD: 22.15, // Güncel AUD/TRY
     }
   }
 
@@ -606,20 +594,30 @@ export default function ReportsTab() {
       {Object.keys(exchangeRates).length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Güncel Döviz Kurları (TRY)</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-lg">💱</span>
+              Güncel Döviz Kurları
+              <Badge variant="outline" className="ml-auto">
+                {format(new Date(), "dd.MM.yyyy HH:mm")}
+              </Badge>
+            </CardTitle>
+            <CardDescription>Tüm hesaplamalar güncel kurlar kullanılarak TRY cinsinden yapılmaktadır</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 text-xs">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
               {Object.entries(exchangeRates).map(([currency, rate]) => (
-                <div key={currency} className="flex justify-between">
-                  <span className="font-medium">{currency}:</span>
-                  <span>{rate.toFixed(2)}</span>
+                <div key={currency} className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{currency}/TRY</div>
+                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100">₺{rate.toFixed(2)}</div>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              * Tüm hesaplamalar güncel kurlar kullanılarak TRY cinsinden yapılmaktadır.
-            </p>
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                <span>ℹ️</span>
+                Kurlar 5 dakikada bir güncellenir. Hesaplamalar gerçek zamanlı kurlar ile yapılır.
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
