@@ -35,6 +35,7 @@ interface Transaction {
   type: string
   category_name?: string
   category_id?: string
+  currency: string
   date: string
   created_at: string
 }
@@ -59,6 +60,10 @@ interface MonthlyData {
   balance: number
 }
 
+// Döviz kurları cache
+const CACHE_DURATION = 5 * 60 * 1000 // 5 dakika
+const exchangeRateCache: Record<string, { rate: number; timestamp: number }> = {}
+
 export default function ReportsTab() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
@@ -73,32 +78,180 @@ export default function ReportsTab() {
   const [topCategories, setTopCategories] = useState<CategorySummary[]>([])
   const [reportTab, setReportTab] = useState("overview")
   const [chartDescription, setChartDescription] = useState("Son 6 ay")
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({})
+
+  // Döviz kurlarını çek
+  const fetchExchangeRates = async (): Promise<Record<string, number>> => {
+    try {
+      console.log("💱 Güncel döviz kurları çekiliyor...")
+
+      // Cache kontrolü
+      const cachedRates: Record<string, number> = {}
+      let needsFetch = false
+
+      const currencies = ["USD", "EUR", "GBP", "CHF", "JPY", "CAD", "AUD"]
+
+      for (const currency of currencies) {
+        const cached = exchangeRateCache[currency]
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+          cachedRates[currency] = cached.rate
+        } else {
+          needsFetch = true
+          break
+        }
+      }
+
+      if (!needsFetch && Object.keys(cachedRates).length === currencies.length) {
+        console.log("✅ Cache'den döviz kurları alındı:", cachedRates)
+        return cachedRates
+      }
+
+      // TCMB XML API'sinden kurları çek
+      const response = await fetch("https://www.tcmb.gov.tr/kurlar/today.xml", {
+        next: { revalidate: 300 },
+      })
+
+      if (!response.ok) {
+        console.log("❌ TCMB API hatası, manuel kurlar kullanılıyor")
+        return getManualExchangeRates()
+      }
+
+      const xmlText = await response.text()
+      const rates: Record<string, number> = {}
+
+      // USD kurunu çek
+      const usdMatch = xmlText.match(
+        /<Currency[^>]*CurrencyCode="USD"[^>]*>[\s\S]*?<ForexSelling>([\d.,]+)<\/ForexSelling>/,
+      )
+      if (usdMatch) {
+        rates.USD = parsePrice(usdMatch[1]) || 32.85
+      }
+
+      // EUR kurunu çek
+      const eurMatch = xmlText.match(
+        /<Currency[^>]*CurrencyCode="EUR"[^>]*>[\s\S]*?<ForexSelling>([\d.,]+)<\/ForexSelling>/,
+      )
+      if (eurMatch) {
+        rates.EUR = parsePrice(eurMatch[1]) || 35.2
+      }
+
+      // GBP kurunu çek
+      const gbpMatch = xmlText.match(
+        /<Currency[^>]*CurrencyCode="GBP"[^>]*>[\s\S]*?<ForexSelling>([\d.,]+)<\/ForexSelling>/,
+      )
+      if (gbpMatch) {
+        rates.GBP = parsePrice(gbpMatch[1]) || 41.5
+      }
+
+      // Diğer kurlar için manuel değerler
+      rates.CHF = rates.CHF || 36.8
+      rates.JPY = rates.JPY || 0.22
+      rates.CAD = rates.CAD || 23.5
+      rates.AUD = rates.AUD || 21.2
+
+      // Cache'e kaydet
+      for (const [currency, rate] of Object.entries(rates)) {
+        exchangeRateCache[currency] = {
+          rate,
+          timestamp: Date.now(),
+        }
+      }
+
+      console.log("✅ TCMB'den güncel kurlar alındı:", rates)
+      return rates
+    } catch (error) {
+      console.error("❌ Döviz kuru çekilirken hata:", error)
+      return getManualExchangeRates()
+    }
+  }
+
+  // Manuel döviz kurları (fallback)
+  const getManualExchangeRates = (): Record<string, number> => {
+    return {
+      USD: 32.85,
+      EUR: 35.2,
+      GBP: 41.5,
+      CHF: 36.8,
+      JPY: 0.22,
+      CAD: 23.5,
+      AUD: 21.2,
+    }
+  }
+
+  // Fiyat parsing (Türkiye formatı)
+  const parsePrice = (priceStr: string | number): number | null => {
+    if (typeof priceStr === "number") return priceStr
+    if (!priceStr) return null
+
+    const cleanPrice = String(priceStr)
+      .replace(/\s/g, "") // Boşlukları kaldır
+      .replace(/\./g, "") // Binlik ayırıcı noktaları kaldır
+      .replace(",", ".") // Virgülü noktaya çevir
+
+    const price = Number.parseFloat(cleanPrice)
+    return isNaN(price) ? null : price
+  }
+
+  // Tutarı TRY'ye çevir
+  const convertToTRY = async (amount: number, currency: string): Promise<number> => {
+    if (currency === "TRY") {
+      return amount
+    }
+
+    const rates = await fetchExchangeRates()
+    const rate = rates[currency]
+
+    if (!rate) {
+      console.warn(`❌ ${currency} kuru bulunamadı, orijinal tutar kullanılıyor`)
+      return amount
+    }
+
+    const convertedAmount = amount * rate
+    console.log(`💱 ${amount} ${currency} = ${convertedAmount.toFixed(2)} TRY (kur: ${rate})`)
+    return convertedAmount
+  }
 
   // Verileri yükle
   useEffect(() => {
-    const loadedTransactions = localStorageManager.getTransactions()
-    const loadedCategories = localStorageManager.getCategories()
+    const loadData = async () => {
+      const loadedTransactions = localStorageManager.getTransactions()
+      const loadedCategories = localStorageManager.getCategories()
 
-    // Kategorileri ekle
-    const transactionsWithCategories = loadedTransactions.map((transaction) => {
-      const category = loadedCategories.find((cat) => cat.id === transaction.category_id)
-      return {
-        ...transaction,
-        category_name: category?.name || "Bilinmeyen",
-        category_color: category?.color,
+      // Döviz kurlarını çek
+      const rates = await fetchExchangeRates()
+      setExchangeRates(rates)
+
+      // Kategorileri ekle
+      const transactionsWithCategories = loadedTransactions.map((transaction) => {
+        const category = loadedCategories.find((cat) => cat.id === transaction.category_id)
+        return {
+          ...transaction,
+          currency: transaction.currency || "TRY", // Varsayılan para birimi
+          category_name: category?.name || "Bilinmeyen",
+          category_color: category?.color,
+        }
+      })
+
+      setAllTransactions(transactionsWithCategories)
+      setCategories(loadedCategories)
+
+      // Maksimum tutarı belirle (TRY cinsinden)
+      let maxTrans = 0
+      for (const transaction of transactionsWithCategories) {
+        const tryAmount = await convertToTRY(transaction.amount, transaction.currency)
+        if (tryAmount > maxTrans) {
+          maxTrans = tryAmount
+        }
       }
-    })
+      maxTrans = Math.max(maxTrans, 10000)
+      setMaxAmount(maxTrans)
+      setAmountRange([0, maxTrans])
 
-    setAllTransactions(transactionsWithCategories)
-    setCategories(loadedCategories)
+      // Filtreleri uygula
+      applyFilters(transactionsWithCategories, dateFilter, categoryFilter, typeFilter, [0, maxTrans])
+    }
 
-    // Maksimum tutarı belirle
-    const maxTrans = Math.max(...transactionsWithCategories.map((t) => t.amount), 10000)
-    setMaxAmount(maxTrans)
-    setAmountRange([0, maxTrans])
-
-    // Filtreleri uygula
-    applyFilters(transactionsWithCategories, dateFilter, categoryFilter, typeFilter, [0, maxTrans])
+    loadData()
   }, [])
 
   // Filtreleri uygula
@@ -137,6 +290,12 @@ export default function ReportsTab() {
         startDate = startOfMonth(now)
         endDate = endOfMonth(now)
         chartDesc = "Bu ay"
+        break
+      case "nextMonth":
+        const nextMonth = addMonths(now, 1)
+        startDate = startOfMonth(nextMonth)
+        endDate = endOfMonth(nextMonth)
+        chartDesc = "Sonraki ay"
         break
       case "last3months":
         startDate = subMonths(now, 3)
@@ -183,44 +342,58 @@ export default function ReportsTab() {
       filtered = filtered.filter((transaction) => transaction.type === type)
     }
 
-    // Tutar filtresi
-    filtered = filtered.filter((transaction) => transaction.amount >= amount[0] && transaction.amount <= amount[1])
+    // Tutar filtresi (TRY cinsinden)
+    const filterByAmount = async () => {
+      const filteredByAmount = []
+      for (const transaction of filtered) {
+        const tryAmount = await convertToTRY(transaction.amount, transaction.currency)
+        if (tryAmount >= amount[0] && tryAmount <= amount[1]) {
+          filteredByAmount.push(transaction)
+        }
+      }
+      setTransactions(filteredByAmount)
+      prepareChartData(filteredByAmount, date, startDate, endDate)
+    }
 
-    setTransactions(filtered)
-    prepareChartData(filtered, date, startDate, endDate)
+    filterByAmount()
   }
 
   // Grafik verilerini hazırla
-  const prepareChartData = (
+  const prepareChartData = async (
     filteredTransactions: Transaction[],
     dateFilterType: string,
     startDate: Date | null,
     endDate: Date | null,
   ) => {
-    // Kategori bazlı veri - sadece giderler için
+    console.log("📊 Grafik verileri hazırlanıyor (TRY cinsinden)...")
+
+    // Kategori bazlı veri - sadece giderler için (TRY cinsinden)
     const expenseCategoryMap = new Map<string, { name: string; value: number; color: string }>()
     const incomeCategoryMap = new Map<string, { name: string; value: number; color: string }>()
 
-    filteredTransactions.forEach((transaction) => {
+    for (const transaction of filteredTransactions) {
       const categoryId = transaction.category_id || "unknown"
       const category = categories.find((c) => c.id === categoryId)
       const categoryName = category?.name || "Bilinmeyen"
       const categoryColor = category?.color || "#888888"
+
+      // Tutarı TRY'ye çevir
+      const tryAmount = await convertToTRY(transaction.amount, transaction.currency)
 
       if (transaction.type === "expense") {
         if (!expenseCategoryMap.has(categoryId)) {
           expenseCategoryMap.set(categoryId, { name: categoryName, value: 0, color: categoryColor })
         }
         const categoryData = expenseCategoryMap.get(categoryId)!
-        categoryData.value += transaction.amount
+        categoryData.value += tryAmount
       } else if (transaction.type === "income") {
         if (!incomeCategoryMap.has(categoryId)) {
           incomeCategoryMap.set(categoryId, { name: categoryName, value: 0, color: categoryColor })
         }
         const categoryData = incomeCategoryMap.get(categoryId)!
-        categoryData.value += transaction.amount
+        categoryData.value += tryAmount
       }
-    })
+    }
 
     // Sadece gider kategorilerini kullan
     const categoryDataArray = Array.from(expenseCategoryMap.values())
@@ -230,7 +403,7 @@ export default function ReportsTab() {
     setCategoryData(categoryDataArray)
     setTopCategories(categoryDataArray.slice(0, 5))
 
-    // Aylık veri
+    // Aylık veri (TRY cinsinden)
     const monthlyMap = new Map<string, MonthlyData>()
     const now = new Date()
 
@@ -264,8 +437,8 @@ export default function ReportsTab() {
       }
     }
 
-    // İşlemleri aylara dağıt
-    filteredTransactions.forEach((transaction) => {
+    // İşlemleri aylara dağıt (TRY cinsinden)
+    for (const transaction of filteredTransactions) {
       const date = new Date(transaction.date)
       const monthKey = format(date, "yyyy-MM")
 
@@ -277,18 +450,20 @@ export default function ReportsTab() {
         } else {
           // Diğer filtreler için tarih aralığı dışındaysa atla
           console.log(`İşlem ${transaction.description} tarih aralığı dışında: ${transaction.date}`)
-          return
+          continue
         }
       }
 
       const monthData = monthlyMap.get(monthKey)!
+      const tryAmount = await convertToTRY(transaction.amount, transaction.currency)
+
       if (transaction.type === "income") {
-        monthData.income += transaction.amount
+        monthData.income += tryAmount
       } else {
-        monthData.expense += transaction.amount
+        monthData.expense += tryAmount
       }
       monthData.balance = monthData.income - monthData.expense
-    })
+    }
 
     // Ay sırasına göre sırala
     let monthlyDataArray: MonthlyData[]
@@ -305,7 +480,7 @@ export default function ReportsTab() {
         .map(([, value]) => value)
     }
 
-    console.log("📊 Aylık veri hazırlandı:", monthlyDataArray)
+    console.log("📊 Aylık veri hazırlandı (TRY cinsinden):", monthlyDataArray)
     setMonthlyData(monthlyDataArray)
   }
 
@@ -333,6 +508,7 @@ export default function ReportsTab() {
         typeFilter,
         amountRange,
       },
+      exchangeRates: exchangeRates,
       summary: calculateSummary(),
       transactions: transactions,
       categoryData: categoryData,
@@ -349,18 +525,45 @@ export default function ReportsTab() {
     linkElement.click()
   }
 
-  // Özet hesapla
+  // Özet hesapla (TRY cinsinden)
   const calculateSummary = () => {
     let totalIncome = 0
     let totalExpense = 0
     const transactionCount = transactions.length
     const categoryCount = new Set(transactions.map((t) => t.category_id)).size
 
+    // Async hesaplama için Promise kullan
+    const calculateAsync = async () => {
+      for (const transaction of transactions) {
+        const tryAmount = await convertToTRY(transaction.amount, transaction.currency)
+        if (transaction.type === "income") {
+          totalIncome += tryAmount
+        } else {
+          totalExpense += tryAmount
+        }
+      }
+
+      return {
+        totalIncome,
+        totalExpense,
+        balance: totalIncome - totalExpense,
+        transactionCount,
+        categoryCount,
+        averageTransaction: transactionCount > 0 ? (totalIncome + totalExpense) / transactionCount : 0,
+      }
+    }
+
+    // Sync fallback (mevcut exchange rates kullanarak)
     transactions.forEach((transaction) => {
+      let tryAmount = transaction.amount
+      if (transaction.currency !== "TRY" && exchangeRates[transaction.currency]) {
+        tryAmount = transaction.amount * exchangeRates[transaction.currency]
+      }
+
       if (transaction.type === "income") {
-        totalIncome += transaction.amount
+        totalIncome += tryAmount
       } else {
-        totalExpense += transaction.amount
+        totalExpense += tryAmount
       }
     })
 
@@ -374,7 +577,7 @@ export default function ReportsTab() {
     }
   }
 
-  // Para formatı
+  // Para formatı (her zaman TRY)
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("tr-TR", {
       style: "currency",
@@ -399,6 +602,28 @@ export default function ReportsTab() {
         </div>
       </div>
 
+      {/* Döviz Kuru Bilgisi */}
+      {Object.keys(exchangeRates).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Güncel Döviz Kurları (TRY)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 text-xs">
+              {Object.entries(exchangeRates).map(([currency, rate]) => (
+                <div key={currency} className="flex justify-between">
+                  <span className="font-medium">{currency}:</span>
+                  <span>{rate.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              * Tüm hesaplamalar güncel kurlar kullanılarak TRY cinsinden yapılmaktadır.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filtreler */}
       <Card>
         <CardHeader>
@@ -420,6 +645,7 @@ export default function ReportsTab() {
                   <SelectItem value="last7days">Son 7 Gün</SelectItem>
                   <SelectItem value="last30days">Son 30 Gün</SelectItem>
                   <SelectItem value="thisMonth">Bu Ay</SelectItem>
+                  <SelectItem value="nextMonth">Sonraki Ay</SelectItem>
                   <SelectItem value="last3months">Son 3 Ay</SelectItem>
                   <SelectItem value="last6months">Son 6 Ay</SelectItem>
                   <SelectItem value="next6months">Gelecek 6 Ay</SelectItem>
@@ -462,7 +688,7 @@ export default function ReportsTab() {
 
             <div className="space-y-2">
               <Label>
-                Tutar Aralığı: {formatCurrency(amountRange[0])} - {formatCurrency(amountRange[1])}
+                Tutar Aralığı (TRY): {formatCurrency(amountRange[0])} - {formatCurrency(amountRange[1])}
               </Label>
               <Slider
                 value={amountRange}
@@ -511,7 +737,7 @@ export default function ReportsTab() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Toplam Gelir</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Toplam Gelir (TRY)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">{formatCurrency(summary.totalIncome)}</div>
@@ -520,7 +746,7 @@ export default function ReportsTab() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Toplam Gider</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Toplam Gider (TRY)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">{formatCurrency(summary.totalExpense)}</div>
@@ -529,7 +755,7 @@ export default function ReportsTab() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Net Bakiye</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Net Bakiye (TRY)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${summary.balance >= 0 ? "text-green-600" : "text-red-600"}`}>
@@ -553,7 +779,7 @@ export default function ReportsTab() {
             {/* Aylık Trend */}
             <Card className="col-span-1">
               <CardHeader>
-                <CardTitle>Aylık Gelir/Gider Trendi</CardTitle>
+                <CardTitle>Aylık Gelir/Gider Trendi (TRY)</CardTitle>
                 <CardDescription>{chartDescription}</CardDescription>
               </CardHeader>
               <CardContent>
@@ -596,7 +822,7 @@ export default function ReportsTab() {
             {/* Top Kategoriler */}
             <Card className="col-span-1">
               <CardHeader>
-                <CardTitle>En Çok Gider Yapılan Kategoriler</CardTitle>
+                <CardTitle>En Çok Gider Yapılan Kategoriler (TRY)</CardTitle>
                 <CardDescription>Top 5 kategori</CardDescription>
               </CardHeader>
               <CardContent>
@@ -636,7 +862,7 @@ export default function ReportsTab() {
             {/* Kategori Pasta Grafiği */}
             <Card className="col-span-1">
               <CardHeader>
-                <CardTitle>Kategori Dağılımı</CardTitle>
+                <CardTitle>Kategori Dağılımı (TRY)</CardTitle>
                 <CardDescription>Harcamaların kategori bazlı dağılımı</CardDescription>
               </CardHeader>
               <CardContent>
@@ -673,7 +899,7 @@ export default function ReportsTab() {
             {/* Kategori Listesi */}
             <Card className="col-span-1">
               <CardHeader>
-                <CardTitle>Kategori Detayları</CardTitle>
+                <CardTitle>Kategori Detayları (TRY)</CardTitle>
                 <CardDescription>Tüm kategorilerin harcama tutarları</CardDescription>
               </CardHeader>
               <CardContent>
@@ -707,7 +933,7 @@ export default function ReportsTab() {
           {/* Aylık Trend Grafiği */}
           <Card>
             <CardHeader>
-              <CardTitle>Aylık Gelir/Gider Trendi</CardTitle>
+              <CardTitle>Aylık Gelir/Gider Trendi (TRY)</CardTitle>
               <CardDescription>{chartDescription}</CardDescription>
             </CardHeader>
             <CardContent>
@@ -737,7 +963,7 @@ export default function ReportsTab() {
           {/* Aylık Veri Tablosu */}
           <Card>
             <CardHeader>
-              <CardTitle>Aylık Finansal Veriler</CardTitle>
+              <CardTitle>Aylık Finansal Veriler (TRY)</CardTitle>
               <CardDescription>{chartDescription}</CardDescription>
             </CardHeader>
             <CardContent>
@@ -793,7 +1019,7 @@ export default function ReportsTab() {
           <Card>
             <CardHeader>
               <CardTitle>İşlem Listesi</CardTitle>
-              <CardDescription>Filtrelere göre işlemler</CardDescription>
+              <CardDescription>Filtrelere göre işlemler (orijinal para birimleri)</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -804,6 +1030,7 @@ export default function ReportsTab() {
                       <th className="text-left py-3 px-4">Açıklama</th>
                       <th className="text-left py-3 px-4">Kategori</th>
                       <th className="text-right py-3 px-4">Tutar</th>
+                      <th className="text-right py-3 px-4">Para Birimi</th>
                       <th className="text-center py-3 px-4">Tür</th>
                     </tr>
                   </thead>
@@ -818,7 +1045,15 @@ export default function ReportsTab() {
                           <td className="py-3 px-4">{transaction.category_name}</td>
                           <td className="text-right py-3 px-4">
                             <span className={transaction.type === "income" ? "text-green-600" : "text-red-600"}>
-                              {formatCurrency(transaction.amount)}
+                              {new Intl.NumberFormat("tr-TR", {
+                                style: "currency",
+                                currency: transaction.currency,
+                              }).format(transaction.amount)}
+                            </span>
+                          </td>
+                          <td className="text-right py-3 px-4">
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                              {transaction.currency}
                             </span>
                           </td>
                           <td className="text-center py-3 px-4">
@@ -837,7 +1072,7 @@ export default function ReportsTab() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-gray-500">
+                        <td colSpan={6} className="py-8 text-center text-gray-500">
                           İşlem bulunamadı
                         </td>
                       </tr>
