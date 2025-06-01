@@ -534,121 +534,26 @@ class LocalStorageManager {
         // GELİR KATEGORİLERİ
         { id: "income-1", name: "Maaş", type: "income", color: "#10b981", user_id: this.currentUserId },
         { id: "income-2", name: "Prim/Bonus", type: "income", color: "#059669", user_id: this.currentUserId },
-        { id: "income-3", name: "Freelance/Yan Gelir", type: "income", color: "#34d399", user_id: this.currentUserId },
+        { id: "income-3", name: "Yan Gelir", type: "income", color: "#34d399", user_id: this.currentUserId },
         { id: "income-4", name: "Yatırım Geliri", type: "income", color: "#6ee7b7", user_id: this.currentUserId },
-        { id: "income-5", name: "Kira Geliri", type: "income", color: "#a7f3d0", user_id: this.currentUserId },
-        { id: "income-6", name: "Satış Geliri", type: "income", color: "#d1fae5", user_id: this.currentUserId },
-        { id: "income-7", name: "Hediye/Bağış", type: "income", color: "#ecfdf5", user_id: this.currentUserId },
-        { id: "income-8", name: "Diğer Gelir", type: "income", color: "#047857", user_id: this.currentUserId },
+        { id: "income-5", name: "Diğer Gelir", type: "income", color: "#047857", user_id: this.currentUserId },
 
         // GİDER KATEGORİLERİ
-        // Konut & Yaşam
-        { id: "expense-1", name: "Kira", type: "expense", color: "#ef4444", user_id: this.currentUserId },
-        { id: "expense-2", name: "Aidat/Yönetim", type: "expense", color: "#dc2626", user_id: this.currentUserId },
-        { id: "expense-3", name: "Elektrik", type: "expense", color: "#b91c1c", user_id: this.currentUserId },
-        { id: "expense-4", name: "Su", type: "expense", color: "#991b1b", user_id: this.currentUserId },
-        { id: "expense-5", name: "Doğalgaz", type: "expense", color: "#7f1d1d", user_id: this.currentUserId },
-        { id: "expense-6", name: "İnternet", type: "expense", color: "#fca5a5", user_id: this.currentUserId },
-        { id: "expense-7", name: "Telefon", type: "expense", color: "#f87171", user_id: this.currentUserId },
-
-        // Gıda & İçecek
-        { id: "expense-8", name: "Market/Gıda", type: "expense", color: "#f97316", user_id: this.currentUserId },
-        {
-          id: "expense-9",
-          name: "Restoran/Dışarıda Yemek",
-          type: "expense",
-          color: "#ea580c",
-          user_id: this.currentUserId,
-        },
-        { id: "expense-10", name: "Kahve/İçecek", type: "expense", color: "#c2410c", user_id: this.currentUserId },
-
-        // Ulaşım
-        { id: "expense-11", name: "Yakıt", type: "expense", color: "#eab308", user_id: this.currentUserId },
-        { id: "expense-12", name: "Toplu Taşıma", type: "expense", color: "#ca8a04", user_id: this.currentUserId },
-        { id: "expense-13", name: "Taksi/Uber", type: "expense", color: "#a16207", user_id: this.currentUserId },
-        { id: "expense-14", name: "Araç Bakım/Onarım", type: "expense", color: "#854d0e", user_id: this.currentUserId },
-        { id: "expense-15", name: "Araç Sigortası", type: "expense", color: "#713f12", user_id: this.currentUserId },
-
-        // Sağlık & Kişisel Bakım
-        { id: "expense-16", name: "Doktor/Hastane", type: "expense", color: "#22c55e", user_id: this.currentUserId },
-        { id: "expense-17", name: "İlaç/Eczane", type: "expense", color: "#16a34a", user_id: this.currentUserId },
-        { id: "expense-18", name: "Berber/Kuaför", type: "expense", color: "#15803d", user_id: this.currentUserId },
-        {
-          id: "expense-19",
-          name: "Kozmetik/Kişisel Bakım",
-          type: "expense",
-          color: "#166534",
-          user_id: this.currentUserId,
-        },
-        { id: "expense-20", name: "Spor/Fitness", type: "expense", color: "#14532d", user_id: this.currentUserId },
-
-        // Giyim & Aksesuar
-        { id: "expense-21", name: "Giyim", type: "expense", color: "#06b6d4", user_id: this.currentUserId },
-        { id: "expense-22", name: "Ayakkabı", type: "expense", color: "#0891b2", user_id: this.currentUserId },
-        { id: "expense-23", name: "Aksesuar/Takı", type: "expense", color: "#0e7490", user_id: this.currentUserId },
-
-        // Teknoloji & Abonelikler
-        { id: "expense-24", name: "Telefon Faturası", type: "expense", color: "#8b5cf6", user_id: this.currentUserId },
-        {
-          id: "expense-25",
-          name: "Streaming (Netflix, Spotify)",
-          type: "expense",
-          color: "#7c3aed",
-          user_id: this.currentUserId,
-        },
-        { id: "expense-26", name: "Yazılım/Uygulama", type: "expense", color: "#6d28d9", user_id: this.currentUserId },
-        {
-          id: "expense-27",
-          name: "Teknoloji Alışverişi",
-          type: "expense",
-          color: "#5b21b6",
-          user_id: this.currentUserId,
-        },
-        { id: "expense-28", name: "Abonelik/Üyelik", type: "expense", color: "#4c1d95", user_id: this.currentUserId },
-
-        // Eğlence & Sosyal
-        { id: "expense-29", name: "Sinema/Tiyatro", type: "expense", color: "#ec4899", user_id: this.currentUserId },
-        { id: "expense-30", name: "Kitap/Dergi", type: "expense", color: "#db2777", user_id: this.currentUserId },
-        { id: "expense-31", name: "Oyun/Hobi", type: "expense", color: "#be185d", user_id: this.currentUserId },
-        { id: "expense-32", name: "Seyahat/Tatil", type: "expense", color: "#9d174d", user_id: this.currentUserId },
-        { id: "expense-33", name: "Hediye", type: "expense", color: "#831843", user_id: this.currentUserId },
-
-        // Özel Etkinlikler
-        { id: "expense-34", name: "Düğün", type: "expense", color: "#fbbf24", user_id: this.currentUserId },
-        { id: "expense-35", name: "Nişan", type: "expense", color: "#f59e0b", user_id: this.currentUserId },
-
-        // Finansal & Yatırım
-        {
-          id: "expense-36",
-          name: "Kredi Kartı Ödemesi",
-          type: "expense",
-          color: "#6b7280",
-          user_id: this.currentUserId,
-        },
-        { id: "expense-37", name: "Kredi/Taksit", type: "expense", color: "#4b5563", user_id: this.currentUserId },
-        { id: "expense-38", name: "Sigorta Primleri", type: "expense", color: "#374151", user_id: this.currentUserId },
-        { id: "expense-39", name: "Yatırım", type: "expense", color: "#1f2937", user_id: this.currentUserId },
-        { id: "expense-40", name: "Vergi/Harç", type: "expense", color: "#111827", user_id: this.currentUserId },
-
-        // Ev & Mobilya
-        { id: "expense-41", name: "Mobilya", type: "expense", color: "#92400e", user_id: this.currentUserId },
-        { id: "expense-42", name: "Ev Dekorasyonu", type: "expense", color: "#78350f", user_id: this.currentUserId },
-        { id: "expense-43", name: "Ev Aletleri", type: "expense", color: "#451a03", user_id: this.currentUserId },
-        {
-          id: "expense-44",
-          name: "Temizlik Malzemeleri",
-          type: "expense",
-          color: "#292524",
-          user_id: this.currentUserId,
-        },
-
-        // Eğitim & Gelişim
-        { id: "expense-45", name: "Kurs/Eğitim", type: "expense", color: "#0f766e", user_id: this.currentUserId },
-        { id: "expense-46", name: "Okul/Üniversite", type: "expense", color: "#134e4a", user_id: this.currentUserId },
-
-        // Diğer
-        { id: "expense-47", name: "Bağış/Yardım", type: "expense", color: "#65a30d", user_id: this.currentUserId },
-        { id: "expense-48", name: "Diğer Gider", type: "expense", color: "#525252", user_id: this.currentUserId },
+        // Ana Kategoriler
+        { id: "expense-1", name: "Konut", type: "expense", color: "#ef4444", user_id: this.currentUserId },
+        { id: "expense-2", name: "Faturalar", type: "expense", color: "#dc2626", user_id: this.currentUserId },
+        { id: "expense-3", name: "Gıda", type: "expense", color: "#f97316", user_id: this.currentUserId },
+        { id: "expense-4", name: "Ulaşım", type: "expense", color: "#eab308", user_id: this.currentUserId },
+        { id: "expense-5", name: "Sağlık", type: "expense", color: "#22c55e", user_id: this.currentUserId },
+        { id: "expense-6", name: "Giyim", type: "expense", color: "#06b6d4", user_id: this.currentUserId },
+        { id: "expense-7", name: "Abonelikler", type: "expense", color: "#8b5cf6", user_id: this.currentUserId },
+        { id: "expense-8", name: "Eğlence", type: "expense", color: "#ec4899", user_id: this.currentUserId },
+        { id: "expense-9", name: "Düğün", type: "expense", color: "#fbbf24", user_id: this.currentUserId },
+        { id: "expense-10", name: "Nişan", type: "expense", color: "#fde047", user_id: this.currentUserId },
+        { id: "expense-11", name: "Ödemeler", type: "expense", color: "#6b7280", user_id: this.currentUserId },
+        { id: "expense-12", name: "Ev Eşyaları", type: "expense", color: "#92400e", user_id: this.currentUserId },
+        { id: "expense-13", name: "Eğitim", type: "expense", color: "#0f766e", user_id: this.currentUserId },
+        { id: "expense-14", name: "Diğer", type: "expense", color: "#525252", user_id: this.currentUserId },
       ],
       budgets: [],
       investments: [],
