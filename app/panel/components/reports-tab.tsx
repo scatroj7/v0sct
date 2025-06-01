@@ -192,8 +192,9 @@ export default function ReportsTab() {
 
   // Grafik verilerini hazırla
   const prepareChartData = (filteredTransactions: Transaction[], dateFilterType: string) => {
-    // Kategori bazlı veri
-    const categoryMap = new Map<string, { name: string; value: number; color: string }>()
+    // Kategori bazlı veri - sadece giderler için
+    const expenseCategoryMap = new Map<string, { name: string; value: number; color: string }>()
+    const incomeCategoryMap = new Map<string, { name: string; value: number; color: string }>()
 
     filteredTransactions.forEach((transaction) => {
       const categoryId = transaction.category_id || "unknown"
@@ -201,15 +202,23 @@ export default function ReportsTab() {
       const categoryName = category?.name || "Bilinmeyen"
       const categoryColor = category?.color || "#888888"
 
-      if (!categoryMap.has(categoryId)) {
-        categoryMap.set(categoryId, { name: categoryName, value: 0, color: categoryColor })
+      if (transaction.type === "expense") {
+        if (!expenseCategoryMap.has(categoryId)) {
+          expenseCategoryMap.set(categoryId, { name: categoryName, value: 0, color: categoryColor })
+        }
+        const categoryData = expenseCategoryMap.get(categoryId)!
+        categoryData.value += transaction.amount
+      } else if (transaction.type === "income") {
+        if (!incomeCategoryMap.has(categoryId)) {
+          incomeCategoryMap.set(categoryId, { name: categoryName, value: 0, color: categoryColor })
+        }
+        const categoryData = incomeCategoryMap.get(categoryId)!
+        categoryData.value += transaction.amount
       }
-
-      const categoryData = categoryMap.get(categoryId)!
-      categoryData.value += transaction.amount
     })
 
-    const categoryDataArray = Array.from(categoryMap.values())
+    // Sadece gider kategorilerini kullan
+    const categoryDataArray = Array.from(expenseCategoryMap.values())
       .sort((a, b) => b.value - a.value)
       .slice(0, 10)
 
@@ -571,7 +580,7 @@ export default function ReportsTab() {
             {/* Top Kategoriler */}
             <Card className="col-span-1">
               <CardHeader>
-                <CardTitle>En Çok Harcama Yapılan Kategoriler</CardTitle>
+                <CardTitle>En Çok Gider Yapılan Kategoriler</CardTitle>
                 <CardDescription>Top 5 kategori</CardDescription>
               </CardHeader>
               <CardContent>
