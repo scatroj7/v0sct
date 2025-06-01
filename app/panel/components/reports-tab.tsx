@@ -231,13 +231,16 @@ export default function ReportsTab() {
 
     // Tarih filtresine göre aylık veri oluştur
     if (dateFilterType === "next6months") {
-      // Gelecek 6 ay için
+      // Gelecek 6 ay için - bugünden başlayarak
       for (let i = 0; i < 6; i++) {
         const date = addMonths(now, i)
         const monthKey = format(date, "yyyy-MM")
         const monthName = format(date, "MMM yyyy", { locale: tr })
         monthlyMap.set(monthKey, { month: monthName, income: 0, expense: 0, balance: 0 })
       }
+    } else if (dateFilterType === "all") {
+      // Tüm zamanlar için - işlemlerin tarihlerine göre dinamik oluştur
+      // Önce boş harita oluştur, sonra işlemlerden dolduracağız
     } else {
       // Diğer filtreler için son 6 ay
       for (let i = 5; i >= 0; i--) {
@@ -253,11 +256,12 @@ export default function ReportsTab() {
       const monthKey = format(date, "yyyy-MM")
 
       if (!monthlyMap.has(monthKey)) {
-        // Eğer ay haritada yoksa ve tarih aralığı içindeyse ekle
+        // Eğer ay haritada yoksa ve "all" filtresi ise ekle
         if (dateFilterType === "all") {
           const monthName = format(date, "MMM yyyy", { locale: tr })
           monthlyMap.set(monthKey, { month: monthName, income: 0, expense: 0, balance: 0 })
         } else {
+          // Diğer filtreler için tarih aralığı dışındaysa atla
           return
         }
       }
@@ -274,20 +278,22 @@ export default function ReportsTab() {
     // Ay sırasına göre sırala
     let monthlyDataArray: MonthlyData[]
 
-    if (dateFilterType === "next6months") {
-      // Gelecek aylar için artan sıralama
+    if (dateFilterType === "all") {
+      // Tüm zamanlar için tarih sırasına göre sırala
       monthlyDataArray = Array.from(monthlyMap.values()).sort((a, b) => {
-        const dateA = new Date(a.month.replace(/(\w+)\s(\d+)/, "$2-$1-01"))
-        const dateB = new Date(b.month.replace(/(\w+)\s(\d+)/, "$2-$1-01"))
+        // Ay isimlerini tarihe çevir ve karşılaştır
+        const monthNames = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"]
+        const [monthA, yearA] = a.month.split(" ")
+        const [monthB, yearB] = b.month.split(" ")
+        const dateA = new Date(Number.parseInt(yearA), monthNames.indexOf(monthA), 1)
+        const dateB = new Date(Number.parseInt(yearB), monthNames.indexOf(monthB), 1)
         return dateA.getTime() - dateB.getTime()
       })
     } else {
-      // Geçmiş aylar için artan sıralama
-      monthlyDataArray = Array.from(monthlyMap.values()).sort((a, b) => {
-        const dateA = new Date(a.month.replace(/(\w+)\s(\d+)/, "$2-$1-01"))
-        const dateB = new Date(b.month.replace(/(\w+)\s(\d+)/, "$2-$1-01"))
-        return dateA.getTime() - dateB.getTime()
-      })
+      // Diğer filtreler için ay anahtarına göre sırala
+      monthlyDataArray = Array.from(monthlyMap.entries())
+        .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+        .map(([, value]) => value)
     }
 
     setMonthlyData(monthlyDataArray)
