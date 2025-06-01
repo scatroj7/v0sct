@@ -72,6 +72,7 @@ export default function ReportsTab() {
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
   const [topCategories, setTopCategories] = useState<CategorySummary[]>([])
   const [reportTab, setReportTab] = useState("overview")
+  const [chartDescription, setChartDescription] = useState("Son 6 ay")
 
   // Verileri yükle
   useEffect(() => {
@@ -114,44 +115,56 @@ export default function ReportsTab() {
     const now = new Date()
     let startDate: Date | null = null
     let endDate: Date | null = null
+    let chartDesc = "Son 6 ay"
 
     switch (date) {
       case "today":
         startDate = new Date(now.setHours(0, 0, 0, 0))
         endDate = new Date(now.setHours(23, 59, 59, 999))
+        chartDesc = "Bugün"
         break
       case "last7days":
         startDate = subDays(now, 7)
         endDate = now
+        chartDesc = "Son 7 gün"
         break
       case "last30days":
         startDate = subDays(now, 30)
         endDate = now
+        chartDesc = "Son 30 gün"
         break
       case "thisMonth":
         startDate = startOfMonth(now)
         endDate = endOfMonth(now)
+        chartDesc = "Bu ay"
         break
       case "last3months":
         startDate = subMonths(now, 3)
         endDate = now
+        chartDesc = "Son 3 ay"
         break
       case "last6months":
         startDate = subMonths(now, 6)
         endDate = now
+        chartDesc = "Son 6 ay"
         break
       case "next6months":
         startDate = now
         endDate = addMonths(now, 6)
+        chartDesc = "Gelecek 6 ay"
         break
       case "thisYear":
         startDate = new Date(now.getFullYear(), 0, 1)
         endDate = new Date(now.getFullYear(), 11, 31)
+        chartDesc = "Bu yıl"
         break
       case "all":
       default:
+        chartDesc = "Tüm zamanlar"
         break
     }
+
+    setChartDescription(chartDesc)
 
     if (startDate && endDate) {
       filtered = filtered.filter((transaction) => {
@@ -174,11 +187,11 @@ export default function ReportsTab() {
     filtered = filtered.filter((transaction) => transaction.amount >= amount[0] && transaction.amount <= amount[1])
 
     setTransactions(filtered)
-    prepareChartData(filtered)
+    prepareChartData(filtered, date)
   }
 
   // Grafik verilerini hazırla
-  const prepareChartData = (filteredTransactions: Transaction[]) => {
+  const prepareChartData = (filteredTransactions: Transaction[], dateFilterType: string) => {
     // Kategori bazlı veri
     const categoryMap = new Map<string, { name: string; value: number; color: string }>()
 
@@ -205,20 +218,40 @@ export default function ReportsTab() {
 
     // Aylık veri
     const monthlyMap = new Map<string, MonthlyData>()
+    const now = new Date()
 
-    // Son 6 ayı ekle
-    for (let i = 5; i >= 0; i--) {
-      const date = subMonths(new Date(), i)
-      const monthKey = format(date, "yyyy-MM")
-      const monthName = format(date, "MMM yyyy", { locale: tr })
-      monthlyMap.set(monthKey, { month: monthName, income: 0, expense: 0, balance: 0 })
+    // Tarih filtresine göre aylık veri oluştur
+    if (dateFilterType === "next6months") {
+      // Gelecek 6 ay için
+      for (let i = 0; i < 6; i++) {
+        const date = addMonths(now, i)
+        const monthKey = format(date, "yyyy-MM")
+        const monthName = format(date, "MMM yyyy", { locale: tr })
+        monthlyMap.set(monthKey, { month: monthName, income: 0, expense: 0, balance: 0 })
+      }
+    } else {
+      // Diğer filtreler için son 6 ay
+      for (let i = 5; i >= 0; i--) {
+        const date = subMonths(now, i)
+        const monthKey = format(date, "yyyy-MM")
+        const monthName = format(date, "MMM yyyy", { locale: tr })
+        monthlyMap.set(monthKey, { month: monthName, income: 0, expense: 0, balance: 0 })
+      }
     }
 
     filteredTransactions.forEach((transaction) => {
       const date = new Date(transaction.date)
       const monthKey = format(date, "yyyy-MM")
 
-      if (!monthlyMap.has(monthKey)) return
+      if (!monthlyMap.has(monthKey)) {
+        // Eğer ay haritada yoksa ve tarih aralığı içindeyse ekle
+        if (dateFilterType === "all") {
+          const monthName = format(date, "MMM yyyy", { locale: tr })
+          monthlyMap.set(monthKey, { month: monthName, income: 0, expense: 0, balance: 0 })
+        } else {
+          return
+        }
+      }
 
       const monthData = monthlyMap.get(monthKey)!
       if (transaction.type === "income") {
@@ -229,7 +262,25 @@ export default function ReportsTab() {
       monthData.balance = monthData.income - monthData.expense
     })
 
-    const monthlyDataArray = Array.from(monthlyMap.values())
+    // Ay sırasına göre sırala
+    let monthlyDataArray: MonthlyData[]
+
+    if (dateFilterType === "next6months") {
+      // Gelecek aylar için artan sıralama
+      monthlyDataArray = Array.from(monthlyMap.values()).sort((a, b) => {
+        const dateA = new Date(a.month.replace(/(\w+)\s(\d+)/, "$2-$1-01"))
+        const dateB = new Date(b.month.replace(/(\w+)\s(\d+)/, "$2-$1-01"))
+        return dateA.getTime() - dateB.getTime()
+      })
+    } else {
+      // Geçmiş aylar için artan sıralama
+      monthlyDataArray = Array.from(monthlyMap.values()).sort((a, b) => {
+        const dateA = new Date(a.month.replace(/(\w+)\s(\d+)/, "$2-$1-01"))
+        const dateB = new Date(b.month.replace(/(\w+)\s(\d+)/, "$2-$1-01"))
+        return dateA.getTime() - dateB.getTime()
+      })
+    }
+
     setMonthlyData(monthlyDataArray)
   }
 
@@ -478,7 +529,7 @@ export default function ReportsTab() {
             <Card className="col-span-1">
               <CardHeader>
                 <CardTitle>Aylık Gelir/Gider Trendi</CardTitle>
-                <CardDescription>Son 6 ay</CardDescription>
+                <CardDescription>{chartDescription}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-80">
@@ -632,7 +683,7 @@ export default function ReportsTab() {
           <Card>
             <CardHeader>
               <CardTitle>Aylık Gelir/Gider Trendi</CardTitle>
-              <CardDescription>Son 6 ay</CardDescription>
+              <CardDescription>{chartDescription}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-80">
@@ -662,7 +713,7 @@ export default function ReportsTab() {
           <Card>
             <CardHeader>
               <CardTitle>Aylık Finansal Veriler</CardTitle>
-              <CardDescription>Son 6 ay detaylı veriler</CardDescription>
+              <CardDescription>{chartDescription}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
