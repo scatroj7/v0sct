@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { PlusIcon, Trash2Icon } from "lucide-react"
+import { PlusIcon, Trash2Icon, EditIcon } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { localStorageManager } from "@/app/lib/local-storage-manager"
@@ -42,6 +42,8 @@ export default function TransactionsTab() {
     type: "expense",
     category_id: "",
     date: new Date(),
+    frequency: "once" as "once" | "monthly" | "every3months" | "every6months" | "yearly" | "custom",
+    customCount: "2",
   })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -52,6 +54,8 @@ export default function TransactionsTab() {
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([])
   const [selectAll, setSelectAll] = useState(false)
   const { toast } = useToast()
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   // İşlemleri getir
   const fetchTransactions = async () => {
@@ -116,16 +120,122 @@ export default function TransactionsTab() {
       }
 
       console.log("📦 Local storage'a işlem ekleniyor...")
-      const transactionData = {
-        amount: Number.parseFloat(newTransaction.amount),
-        description: newTransaction.description,
-        type: newTransaction.type as "income" | "expense",
-        category_id: newTransaction.category_id,
-        date: format(newTransaction.date, "yyyy-MM-dd"),
-      }
 
-      localStorageManager.addTransaction(transactionData)
-      console.log("📦 Local storage'a işlem eklendi")
+      // Tek seferlik işlem
+      if (newTransaction.frequency === "once") {
+        const transactionData = {
+          amount: Number.parseFloat(newTransaction.amount),
+          description: newTransaction.description,
+          type: newTransaction.type as "income" | "expense",
+          category_id: newTransaction.category_id,
+          date: format(newTransaction.date, "yyyy-MM-dd"),
+        }
+
+        localStorageManager.addTransaction(transactionData)
+        console.log("📦 Local storage'a tek seferlik işlem eklendi")
+      }
+      // Tekrarlanan/Taksitli işlem
+      else {
+        // Ay adları
+        const months = [
+          "Ocak",
+          "Şubat",
+          "Mart",
+          "Nisan",
+          "Mayıs",
+          "Haziran",
+          "Temmuz",
+          "Ağustos",
+          "Eylül",
+          "Ekim",
+          "Kasım",
+          "Aralık",
+        ]
+
+        // Kategori adını bul
+        const selectedCategory = categories.find((cat) => cat.id === newTransaction.category_id)
+        const categoryName = selectedCategory?.name || "İşlem"
+
+        // Frequency türüne göre ay aralığı
+        const frequencyIntervals = {
+          monthly: 1,
+          every3months: 3,
+          every6months: 6,
+          yearly: 12,
+          custom: 1,
+        }
+
+        // Frequency türüne göre toplam sayı (yıl sonuna kadar)
+        const currentYear = new Date().getFullYear()
+        const endOfYear = new Date(currentYear, 11, 31) // 31 Aralık
+        const startDate = new Date(newTransaction.date)
+
+        let totalCount = 0
+        if (newTransaction.frequency === "custom") {
+          totalCount = Number.parseInt(newTransaction.customCount) || 2
+        } else {
+          // Yıl sonuna kadar kaç kez tekrarlanacağını hesapla
+          let tempDate = new Date(startDate)
+          while (tempDate <= endOfYear) {
+            totalCount++
+            tempDate = new Date(tempDate)
+            tempDate.setMonth(tempDate.getMonth() + frequencyIntervals[newTransaction.frequency])
+          }
+        }
+
+        // İşlemleri oluştur
+        for (let i = 0; i < totalCount; i++) {
+          const transactionDate = new Date(startDate)
+
+          if (newTransaction.frequency === "custom") {
+            // Özel taksit/tekrar için aylık artır
+            transactionDate.setMonth(startDate.getMonth() + i)
+          } else {
+            // Diğer seçenekler için belirlenen aralıkta artır
+            transactionDate.setMonth(startDate.getMonth() + i * frequencyIntervals[newTransaction.frequency])
+          }
+
+          // Yıl sonunu geçerse dur (custom hariç)
+          if (newTransaction.frequency !== "custom" && transactionDate > endOfYear) {
+            break
+          }
+
+          const monthName = months[transactionDate.getMonth()]
+
+          let description = ""
+
+          if (newTransaction.type === "income") {
+            // Gelir için: "Temmuz ayı Prim" formatı
+            if (newTransaction.description && newTransaction.description.trim() !== "") {
+              description = `${monthName} ayı ${newTransaction.description.trim()}`
+            } else {
+              description = `${monthName} ayı ${categoryName}`
+            }
+          } else {
+            // Gider için: "5/6 Taksit xxx" formatı
+            const taksitInfo = `${i + 1}/${totalCount} Taksit`
+            if (newTransaction.description && newTransaction.description.trim() !== "") {
+              description = `${taksitInfo} ${newTransaction.description.trim()}`
+            } else {
+              description = `${taksitInfo} ${categoryName}`
+            }
+          }
+
+          const transactionData = {
+            amount: Number.parseFloat(newTransaction.amount),
+            description: description,
+            type: newTransaction.type as "income" | "expense",
+            category_id: newTransaction.category_id,
+            date: format(transactionDate, "yyyy-MM-dd"),
+          }
+
+          localStorageManager.addTransaction(transactionData)
+        }
+
+        console.log(
+          `📦 Local storage'a ${totalCount} adet ${newTransaction.type === "income" ? "tekrarlı" : "taksitli"} işlem eklendi`,
+        )
+      }
 
       // Formu sıfırla ve işlemleri yeniden getir
       setNewTransaction({
@@ -134,6 +244,8 @@ export default function TransactionsTab() {
         type: "expense",
         category_id: "",
         date: new Date(),
+        frequency: "once",
+        customCount: "2",
       })
 
       setIsAddDialogOpen(false)
@@ -144,6 +256,91 @@ export default function TransactionsTab() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // İşlem düzenle
+  const editTransaction = async () => {
+    try {
+      setIsSubmitting(true)
+      setError(null)
+
+      if (!editingTransaction || !newTransaction.amount || !newTransaction.category_id || !newTransaction.date) {
+        setError("Tutar, kategori ve tarih alanları zorunludur.")
+        return
+      }
+
+      console.log("📦 Local storage'da işlem düzenleniyor...")
+
+      const transactionData = {
+        id: editingTransaction.id,
+        amount: Number.parseFloat(newTransaction.amount),
+        description: newTransaction.description,
+        type: newTransaction.type as "income" | "expense",
+        category_id: newTransaction.category_id,
+        date: format(newTransaction.date, "yyyy-MM-dd"),
+      }
+
+      localStorageManager.updateTransaction(transactionData)
+      console.log("📦 Local storage'da işlem düzenlendi")
+
+      // Formu sıfırla ve işlemleri yeniden getir
+      setNewTransaction({
+        amount: "",
+        description: "",
+        type: "expense",
+        category_id: "",
+        date: new Date(),
+        frequency: "once",
+        customCount: "2",
+      })
+
+      setEditingTransaction(null)
+      setIsEditDialogOpen(false)
+      fetchTransactions()
+    } catch (err) {
+      console.error("İşlem düzenlenirken hata:", err)
+      setError(`İşlem düzenlenirken bir hata oluştu: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Tek işlem sil
+  const deleteSingleTransaction = async (transactionId: string) => {
+    if (!confirm("Bu işlemi silmek istediğinizden emin misiniz?")) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      console.log("📦 Local storage'dan işlem siliniyor:", transactionId)
+      const deletedCount = localStorageManager.deleteTransactions([transactionId])
+      console.log(`📦 ${deletedCount} local işlem silindi`)
+
+      fetchTransactions()
+    } catch (err) {
+      console.error("İşlem silinirken hata:", err)
+      setError(`İşlem silinirken bir hata oluştu: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Düzenleme dialogunu aç
+  const openEditDialog = (transaction: Transaction) => {
+    setEditingTransaction(transaction)
+    setNewTransaction({
+      amount: transaction.amount.toString(),
+      description: transaction.description,
+      type: transaction.type,
+      category_id: transaction.category_id,
+      date: new Date(transaction.date),
+      frequency: "once",
+      customCount: "2",
+    })
+    setIsEditDialogOpen(true)
   }
 
   // Seçili işlemleri sil
@@ -299,12 +496,13 @@ export default function TransactionsTab() {
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Kategori</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tutar</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tip</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">İşlemler</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-6 py-4 text-center">
+                <td colSpan={7} className="px-6 py-4 text-center">
                   Yükleniyor...
                 </td>
               </tr>
@@ -330,16 +528,23 @@ export default function TransactionsTab() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center">
                       {transaction.category_name}
-                      {transaction.category_color && (
-                        <div
-                          className="ml-2 w-3 h-3 rounded-full"
-                          style={{ backgroundColor: transaction.category_color }}
-                        ></div>
-                      )}
+                      <div
+                        className={`ml-2 w-3 h-3 rounded-full ${
+                          transaction.type === "income" ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      ></div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(transaction.amount)}
+                    <span
+                      className={
+                        transaction.type === "expense" ? "text-red-600 font-medium" : "text-green-600 font-medium"
+                      }
+                    >
+                      {new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(
+                        transaction.amount,
+                      )}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -349,6 +554,26 @@ export default function TransactionsTab() {
                     >
                       {transaction.type === "income" ? "Gelir" : "Gider"}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditDialog(transaction)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <EditIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => deleteSingleTransaction(transaction.id)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Trash2Icon className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -366,7 +591,7 @@ export default function TransactionsTab() {
         </div>
       )}
 
-      {/* İşlem ekleme dialogu - Dialog kullanıyoruz AlertDialog yerine */}
+      {/* İşlem ekleme dialogu */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -450,6 +675,63 @@ export default function TransactionsTab() {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="frequency" className="text-right">
+                {newTransaction.type === "income" ? "Tekrar" : "Taksit"}
+              </Label>
+              <Select
+                value={newTransaction.frequency}
+                onValueChange={(value) =>
+                  setNewTransaction({
+                    ...newTransaction,
+                    frequency: value as "once" | "monthly" | "every3months" | "every6months" | "yearly" | "custom",
+                  })
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder={newTransaction.type === "income" ? "Tekrar seçin" : "Taksit seçin"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {newTransaction.type === "income" ? (
+                    <>
+                      <SelectItem value="once">Tek Seferlik</SelectItem>
+                      <SelectItem value="monthly">Aylık</SelectItem>
+                      <SelectItem value="every3months">3 Ayda Bir</SelectItem>
+                      <SelectItem value="every6months">6 Ayda Bir</SelectItem>
+                      <SelectItem value="yearly">12 Ayda Bir</SelectItem>
+                      <SelectItem value="custom">Özel Tekrar</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="once">Tek Çekim</SelectItem>
+                      <SelectItem value="monthly">2 Taksit</SelectItem>
+                      <SelectItem value="every3months">3 Taksit</SelectItem>
+                      <SelectItem value="every6months">6 Taksit</SelectItem>
+                      <SelectItem value="yearly">12 Taksit</SelectItem>
+                      <SelectItem value="custom">Özel Taksit</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {newTransaction.frequency === "custom" && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="customCount" className="text-right">
+                  {newTransaction.type === "income" ? "Tekrar Sayısı" : "Taksit Sayısı"}
+                </Label>
+                <Input
+                  type="number"
+                  id="customCount"
+                  value={newTransaction.customCount}
+                  onChange={(e) => setNewTransaction({ ...newTransaction, customCount: e.target.value })}
+                  className="col-span-3"
+                  placeholder={newTransaction.type === "income" ? "Tekrar sayısı" : "Taksit sayısı"}
+                  min="2"
+                  max="24"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -457,6 +739,102 @@ export default function TransactionsTab() {
             </Button>
             <Button disabled={isSubmitting} onClick={addTransaction}>
               {isSubmitting ? "Kaydediliyor..." : "Kaydet"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* İşlem düzenleme dialogu */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>İşlem Düzenle</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-amount" className="text-right">
+                Tutar
+              </Label>
+              <Input
+                type="number"
+                id="edit-amount"
+                value={newTransaction.amount}
+                onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+                className="col-span-3"
+                placeholder="0.00"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-description" className="text-right">
+                Açıklama
+              </Label>
+              <Input
+                type="text"
+                id="edit-description"
+                value={newTransaction.description}
+                onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
+                className="col-span-3"
+                placeholder="İşlem açıklaması"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-type" className="text-right">
+                Tip
+              </Label>
+              <Select
+                value={newTransaction.type}
+                onValueChange={(value) => setNewTransaction({ ...newTransaction, type: value as "income" | "expense" })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Tip seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="income">Gelir</SelectItem>
+                  <SelectItem value="expense">Gider</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-category" className="text-right">
+                Kategori
+              </Label>
+              <Select
+                value={newTransaction.category_id}
+                onValueChange={(value) => setNewTransaction({ ...newTransaction, category_id: value })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Kategori seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories
+                    .filter((category) => category.type === newTransaction.type)
+                    .map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-date" className="text-right">
+                Tarih
+              </Label>
+              <div className="col-span-3">
+                <DatePicker
+                  date={newTransaction.date}
+                  onSelect={(date) => setNewTransaction({ ...newTransaction, date: date || new Date() })}
+                  placeholder="Tarih seçin"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              İptal
+            </Button>
+            <Button disabled={isSubmitting} onClick={editTransaction}>
+              {isSubmitting ? "Güncelleniyor..." : "Güncelle"}
             </Button>
           </DialogFooter>
         </DialogContent>
