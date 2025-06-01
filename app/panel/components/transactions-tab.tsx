@@ -43,7 +43,7 @@ export default function TransactionsTab() {
     category_id: "",
     date: new Date(),
     frequency: "once" as "once" | "monthly" | "every3months" | "every6months" | "yearly" | "custom",
-    customCount: "2",
+    customRepeatCount: "2", // Sadece özel seçenek için
   })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -122,6 +122,15 @@ export default function TransactionsTab() {
         return
       }
 
+      // Tekrarlı işlemler için tekrar sayısı kontrolü (sadece özel seçenek için)
+      if (
+        newTransaction.frequency === "custom" &&
+        (!newTransaction.customRepeatCount || Number.parseInt(newTransaction.customRepeatCount) < 1)
+      ) {
+        setError("Özel tekrar seçeneği için geçerli bir tekrar sayısı giriniz.")
+        return
+      }
+
       console.log("📦 Local storage'a işlem ekleniyor...")
 
       // Tek seferlik işlem
@@ -143,34 +152,48 @@ export default function TransactionsTab() {
         const selectedCategory = categories.find((cat) => cat.id === newTransaction.category_id)
         const categoryName = selectedCategory?.name || "İşlem"
 
-        // Frequency türüne göre ay aralığı ve tekrar sayısı
+        // Frequency türüne göre ay aralığı ve otomatik tekrar sayısı hesaplama
         let intervalMonths = 1
-        const totalCount = Number.parseInt(newTransaction.customCount) || 2
+        let totalCount = 1
+
+        const startDate = newTransaction.date
+        const currentYear = startDate.getFullYear()
+        const yearEnd = new Date(currentYear, 11, 31) // Yıl sonu
+        const monthsUntilYearEnd =
+          (yearEnd.getFullYear() - startDate.getFullYear()) * 12 + (yearEnd.getMonth() - startDate.getMonth()) + 1
 
         switch (newTransaction.frequency) {
           case "monthly":
             intervalMonths = 1
+            totalCount = Math.max(1, monthsUntilYearEnd) // Yıl sonuna kadar aylık
             break
           case "every3months":
             intervalMonths = 3
+            totalCount = Math.max(1, Math.ceil(monthsUntilYearEnd / 3)) // Yıl sonuna kadar 3 ayda bir
             break
           case "every6months":
             intervalMonths = 6
+            totalCount = Math.max(1, Math.ceil(monthsUntilYearEnd / 6)) // Yıl sonuna kadar 6 ayda bir
             break
           case "yearly":
             intervalMonths = 12
+            totalCount = Math.max(1, Math.ceil(monthsUntilYearEnd / 12)) // Yıl sonuna kadar yıllık
             break
           case "custom":
             intervalMonths = 1 // Özel seçenekte aylık olarak tekrarla
+            totalCount = Number.parseInt(newTransaction.customRepeatCount) || 1
             break
         }
-
-        const startDate = newTransaction.date
 
         // İşlemleri oluştur
         for (let i = 0; i < totalCount; i++) {
           const transactionDate = new Date(startDate)
           transactionDate.setMonth(startDate.getMonth() + i * intervalMonths)
+
+          // Yıl sonunu geçmesin (özel seçenek hariç)
+          if (newTransaction.frequency !== "custom" && transactionDate.getFullYear() > currentYear) {
+            break
+          }
 
           let description = ""
           if (newTransaction.description && newTransaction.description.trim() !== "") {
@@ -201,7 +224,7 @@ export default function TransactionsTab() {
         category_id: "",
         date: new Date(),
         frequency: "once",
-        customCount: "2",
+        customRepeatCount: "2",
       })
 
       setIsAddDialogOpen(false)
@@ -247,7 +270,7 @@ export default function TransactionsTab() {
         category_id: "",
         date: new Date(),
         frequency: "once",
-        customCount: "2",
+        customRepeatCount: "2",
       })
 
       setEditingTransaction(null)
@@ -294,7 +317,7 @@ export default function TransactionsTab() {
       category_id: transaction.category_id,
       date: new Date(transaction.date),
       frequency: "once",
-      customCount: "2",
+      customRepeatCount: "2",
     })
     setIsEditDialogOpen(true)
   }
@@ -770,17 +793,17 @@ export default function TransactionsTab() {
 
             {newTransaction.frequency === "custom" && (
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="customCount" className="text-right">
+                <Label htmlFor="customRepeatCount" className="text-right">
                   Tekrar Sayısı
                 </Label>
                 <Input
                   type="number"
-                  id="customCount"
-                  value={newTransaction.customCount}
-                  onChange={(e) => setNewTransaction({ ...newTransaction, customCount: e.target.value })}
+                  id="customRepeatCount"
+                  value={newTransaction.customRepeatCount}
+                  onChange={(e) => setNewTransaction({ ...newTransaction, customRepeatCount: e.target.value })}
                   className="col-span-3"
                   placeholder="Tekrar sayısı"
-                  min="2"
+                  min="1"
                   max="60"
                 />
               </div>
