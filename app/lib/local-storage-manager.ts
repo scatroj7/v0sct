@@ -76,6 +76,7 @@ class LocalStorageManager {
   private backupKey = "scatrack_backup"
   private encryptionKey = "scatrack_2024_secure_key"
   private currentUserId: string | null = null
+  private currentVersion = "2.0.0" // Versiyon güncellendi
 
   static getInstance(): LocalStorageManager {
     if (!LocalStorageManager.instance) {
@@ -128,6 +129,14 @@ class LocalStorageManager {
         return this.getDefaultData()
       }
 
+      // Versiyon kontrolü ve otomatik güncelleme
+      if (!data.metadata.version || data.metadata.version !== this.currentVersion) {
+        console.log("Kategori yapısı güncelleniyor...")
+        data.categories = this.getDefaultCategories()
+        data.metadata.version = this.currentVersion
+        this.saveData(data)
+      }
+
       return data
     } catch (error) {
       console.error("Error loading data:", error)
@@ -145,6 +154,7 @@ class LocalStorageManager {
       // Metadata güncelle
       data.metadata = {
         ...data.metadata,
+        version: this.currentVersion,
         lastUpdate: new Date().toISOString(),
         totalTransactions: data.transactions.length,
       }
@@ -522,6 +532,38 @@ class LocalStorageManager {
     }
   }
 
+  // Standart kategorileri al
+  private getDefaultCategories(): Category[] {
+    if (!this.currentUserId) {
+      throw new Error("No user set")
+    }
+
+    return [
+      // GELİR KATEGORİLERİ
+      { id: "income-1", name: "Maaş", type: "income", color: "#10b981", user_id: this.currentUserId },
+      { id: "income-2", name: "Prim/Bonus", type: "income", color: "#059669", user_id: this.currentUserId },
+      { id: "income-3", name: "Yan Gelir", type: "income", color: "#34d399", user_id: this.currentUserId },
+      { id: "income-4", name: "Yatırım Geliri", type: "income", color: "#6ee7b7", user_id: this.currentUserId },
+      { id: "income-5", name: "Diğer Gelir", type: "income", color: "#047857", user_id: this.currentUserId },
+
+      // GİDER KATEGORİLERİ
+      { id: "expense-1", name: "Konut", type: "expense", color: "#ef4444", user_id: this.currentUserId },
+      { id: "expense-2", name: "Faturalar", type: "expense", color: "#dc2626", user_id: this.currentUserId },
+      { id: "expense-3", name: "Gıda", type: "expense", color: "#f97316", user_id: this.currentUserId },
+      { id: "expense-4", name: "Ulaşım", type: "expense", color: "#eab308", user_id: this.currentUserId },
+      { id: "expense-5", name: "Sağlık", type: "expense", color: "#22c55e", user_id: this.currentUserId },
+      { id: "expense-6", name: "Giyim", type: "expense", color: "#06b6d4", user_id: this.currentUserId },
+      { id: "expense-7", name: "Abonelikler", type: "expense", color: "#8b5cf6", user_id: this.currentUserId },
+      { id: "expense-8", name: "Eğlence", type: "expense", color: "#ec4899", user_id: this.currentUserId },
+      { id: "expense-9", name: "Düğün", type: "expense", color: "#fbbf24", user_id: this.currentUserId },
+      { id: "expense-10", name: "Nişan", type: "expense", color: "#fde047", user_id: this.currentUserId },
+      { id: "expense-11", name: "Ödemeler", type: "expense", color: "#6b7280", user_id: this.currentUserId },
+      { id: "expense-12", name: "Ev Eşyaları", type: "expense", color: "#92400e", user_id: this.currentUserId },
+      { id: "expense-13", name: "Eğitim", type: "expense", color: "#0f766e", user_id: this.currentUserId },
+      { id: "expense-14", name: "Diğer", type: "expense", color: "#525252", user_id: this.currentUserId },
+    ]
+  }
+
   // Yardımcı metodlar
   private getDefaultData(): AppData {
     if (!this.currentUserId) {
@@ -530,31 +572,7 @@ class LocalStorageManager {
 
     return {
       transactions: [],
-      categories: [
-        // GELİR KATEGORİLERİ
-        { id: "income-1", name: "Maaş", type: "income", color: "#10b981", user_id: this.currentUserId },
-        { id: "income-2", name: "Prim/Bonus", type: "income", color: "#059669", user_id: this.currentUserId },
-        { id: "income-3", name: "Yan Gelir", type: "income", color: "#34d399", user_id: this.currentUserId },
-        { id: "income-4", name: "Yatırım Geliri", type: "income", color: "#6ee7b7", user_id: this.currentUserId },
-        { id: "income-5", name: "Diğer Gelir", type: "income", color: "#047857", user_id: this.currentUserId },
-
-        // GİDER KATEGORİLERİ
-        // Ana Kategoriler
-        { id: "expense-1", name: "Konut", type: "expense", color: "#ef4444", user_id: this.currentUserId },
-        { id: "expense-2", name: "Faturalar", type: "expense", color: "#dc2626", user_id: this.currentUserId },
-        { id: "expense-3", name: "Gıda", type: "expense", color: "#f97316", user_id: this.currentUserId },
-        { id: "expense-4", name: "Ulaşım", type: "expense", color: "#eab308", user_id: this.currentUserId },
-        { id: "expense-5", name: "Sağlık", type: "expense", color: "#22c55e", user_id: this.currentUserId },
-        { id: "expense-6", name: "Giyim", type: "expense", color: "#06b6d4", user_id: this.currentUserId },
-        { id: "expense-7", name: "Abonelikler", type: "expense", color: "#8b5cf6", user_id: this.currentUserId },
-        { id: "expense-8", name: "Eğlence", type: "expense", color: "#ec4899", user_id: this.currentUserId },
-        { id: "expense-9", name: "Düğün", type: "expense", color: "#fbbf24", user_id: this.currentUserId },
-        { id: "expense-10", name: "Nişan", type: "expense", color: "#fde047", user_id: this.currentUserId },
-        { id: "expense-11", name: "Ödemeler", type: "expense", color: "#6b7280", user_id: this.currentUserId },
-        { id: "expense-12", name: "Ev Eşyaları", type: "expense", color: "#92400e", user_id: this.currentUserId },
-        { id: "expense-13", name: "Eğitim", type: "expense", color: "#0f766e", user_id: this.currentUserId },
-        { id: "expense-14", name: "Diğer", type: "expense", color: "#525252", user_id: this.currentUserId },
-      ],
+      categories: this.getDefaultCategories(),
       budgets: [],
       investments: [],
       todos: [],
@@ -564,7 +582,7 @@ class LocalStorageManager {
         language: "tr",
       },
       metadata: {
-        version: "1.0.0",
+        version: this.currentVersion,
         lastUpdate: new Date().toISOString(),
         totalTransactions: 0,
       },

@@ -94,6 +94,10 @@ export default function TransactionsTab() {
       setCategories(localCategories)
 
       console.log(`📦 ${localCategories.length} local kategori alındı`)
+      console.log(
+        "Kategoriler:",
+        localCategories.map((c) => c.name),
+      )
     } catch (err) {
       console.error("Kategoriler getirilirken hata:", err)
       setError(`Kategoriler yüklenirken bir hata oluştu: ${err instanceof Error ? err.message : String(err)}`)
