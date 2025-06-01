@@ -726,10 +726,10 @@ export default function TransactionsTab() {
 
       {/* İşlem tablosu */}
       <div className="overflow-x-auto rounded-lg shadow">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead>
+        <table className="min-w-full divide-y divide-gray-200 bg-white dark:bg-gray-800">
+          <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 <Checkbox
                   checked={selectAll}
                   onCheckedChange={(checked) => {
@@ -743,7 +743,7 @@ export default function TransactionsTab() {
                 />
               </th>
               <th
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none transition-colors duration-200"
                 onClick={() => handleSort("date")}
               >
                 <div className="flex items-center justify-between">
@@ -752,7 +752,7 @@ export default function TransactionsTab() {
                 </div>
               </th>
               <th
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none transition-colors duration-200"
                 onClick={() => handleSort("description")}
               >
                 <div className="flex items-center justify-between">
@@ -761,7 +761,7 @@ export default function TransactionsTab() {
                 </div>
               </th>
               <th
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none transition-colors duration-200"
                 onClick={() => handleSort("category_name")}
               >
                 <div className="flex items-center justify-between">
@@ -770,7 +770,7 @@ export default function TransactionsTab() {
                 </div>
               </th>
               <th
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none transition-colors duration-200"
                 onClick={() => handleSort("amount")}
               >
                 <div className="flex items-center justify-between">
@@ -779,7 +779,7 @@ export default function TransactionsTab() {
                 </div>
               </th>
               <th
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none transition-colors duration-200"
                 onClick={() => handleSort("currency")}
               >
                 <div className="flex items-center justify-between">
@@ -788,7 +788,7 @@ export default function TransactionsTab() {
                 </div>
               </th>
               <th
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none transition-colors duration-200"
                 onClick={() => handleSort("type")}
               >
                 <div className="flex items-center justify-between">
@@ -796,36 +796,43 @@ export default function TransactionsTab() {
                   <SortIcon field="type" />
                 </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">İşlemler</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                İşlemler
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
               <tr>
-                <td colSpan={8} className="px-6 py-4 text-center">
+                <td colSpan={8} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                   Yükleniyor...
                 </td>
               </tr>
             ) : transactions.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-4 text-center">
+                <td colSpan={8} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                   İşlem bulunamadı.
                 </td>
               </tr>
             ) : (
               transactions.map((transaction) => (
-                <tr key={transaction.id}>
+                <tr
+                  key={transaction.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Checkbox
                       checked={selectedTransactions.includes(transaction.id)}
                       onCheckedChange={() => handleTransactionSelect(transaction.id)}
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                     {format(new Date(transaction.date), "dd.MM.yyyy")}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{transaction.description}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    {transaction.description}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                     <div className="flex items-center">
                       {transaction.category_name}
                       <div
@@ -845,7 +852,7 @@ export default function TransactionsTab() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200">
                       {transaction.currency}
                     </span>
                   </td>

@@ -149,8 +149,8 @@ export default function ReportsTab() {
         chartDesc = "Son 6 ay"
         break
       case "next6months":
-        startDate = now
-        endDate = addMonths(now, 6)
+        startDate = startOfMonth(now) // Bu ayın başından başla
+        endDate = endOfMonth(addMonths(now, 5)) // 6 ay sonrasının sonuna kadar
         chartDesc = "Gelecek 6 ay"
         break
       case "thisYear":
@@ -187,11 +187,16 @@ export default function ReportsTab() {
     filtered = filtered.filter((transaction) => transaction.amount >= amount[0] && transaction.amount <= amount[1])
 
     setTransactions(filtered)
-    prepareChartData(filtered, date)
+    prepareChartData(filtered, date, startDate, endDate)
   }
 
   // Grafik verilerini hazırla
-  const prepareChartData = (filteredTransactions: Transaction[], dateFilterType: string) => {
+  const prepareChartData = (
+    filteredTransactions: Transaction[],
+    dateFilterType: string,
+    startDate: Date | null,
+    endDate: Date | null,
+  ) => {
     // Kategori bazlı veri - sadece giderler için
     const expenseCategoryMap = new Map<string, { name: string; value: number; color: string }>()
     const incomeCategoryMap = new Map<string, { name: string; value: number; color: string }>()
@@ -231,9 +236,9 @@ export default function ReportsTab() {
 
     // Tarih filtresine göre aylık veri oluştur
     if (dateFilterType === "next6months") {
-      // Gelecek 6 ay için - bugünden başlayarak
+      // Gelecek 6 ay için - bu aydan başlayarak
       for (let i = 0; i < 6; i++) {
-        const date = addMonths(now, i)
+        const date = addMonths(startOfMonth(now), i)
         const monthKey = format(date, "yyyy-MM")
         const monthName = format(date, "MMM yyyy", { locale: tr })
         monthlyMap.set(monthKey, { month: monthName, income: 0, expense: 0, balance: 0 })
@@ -241,6 +246,14 @@ export default function ReportsTab() {
     } else if (dateFilterType === "all") {
       // Tüm zamanlar için - işlemlerin tarihlerine göre dinamik oluştur
       // Önce boş harita oluştur, sonra işlemlerden dolduracağız
+    } else if (dateFilterType === "thisYear") {
+      // Bu yıl için - yılın tüm ayları
+      for (let i = 0; i < 12; i++) {
+        const date = new Date(now.getFullYear(), i, 1)
+        const monthKey = format(date, "yyyy-MM")
+        const monthName = format(date, "MMM yyyy", { locale: tr })
+        monthlyMap.set(monthKey, { month: monthName, income: 0, expense: 0, balance: 0 })
+      }
     } else {
       // Diğer filtreler için son 6 ay
       for (let i = 5; i >= 0; i--) {
@@ -251,6 +264,7 @@ export default function ReportsTab() {
       }
     }
 
+    // İşlemleri aylara dağıt
     filteredTransactions.forEach((transaction) => {
       const date = new Date(transaction.date)
       const monthKey = format(date, "yyyy-MM")
@@ -262,6 +276,7 @@ export default function ReportsTab() {
           monthlyMap.set(monthKey, { month: monthName, income: 0, expense: 0, balance: 0 })
         } else {
           // Diğer filtreler için tarih aralığı dışındaysa atla
+          console.log(`İşlem ${transaction.description} tarih aralığı dışında: ${transaction.date}`)
           return
         }
       }
@@ -280,15 +295,9 @@ export default function ReportsTab() {
 
     if (dateFilterType === "all") {
       // Tüm zamanlar için tarih sırasına göre sırala
-      monthlyDataArray = Array.from(monthlyMap.values()).sort((a, b) => {
-        // Ay isimlerini tarihe çevir ve karşılaştır
-        const monthNames = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"]
-        const [monthA, yearA] = a.month.split(" ")
-        const [monthB, yearB] = b.month.split(" ")
-        const dateA = new Date(Number.parseInt(yearA), monthNames.indexOf(monthA), 1)
-        const dateB = new Date(Number.parseInt(yearB), monthNames.indexOf(monthB), 1)
-        return dateA.getTime() - dateB.getTime()
-      })
+      monthlyDataArray = Array.from(monthlyMap.entries())
+        .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+        .map(([, value]) => value)
     } else {
       // Diğer filtreler için ay anahtarına göre sırala
       monthlyDataArray = Array.from(monthlyMap.entries())
@@ -296,6 +305,7 @@ export default function ReportsTab() {
         .map(([, value]) => value)
     }
 
+    console.log("📊 Aylık veri hazırlandı:", monthlyDataArray)
     setMonthlyData(monthlyDataArray)
   }
 
