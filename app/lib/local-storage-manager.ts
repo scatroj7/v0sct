@@ -76,7 +76,7 @@ class LocalStorageManager {
   private backupKey = "scatrack_backup"
   private encryptionKey = "scatrack_2024_secure_key"
   private currentUserId: string | null = null
-  private currentVersion = "2.1.0" // Versiyon güncellendi
+  private currentVersion = "2.2.0" // Versiyon güncellendi
 
   static getInstance(): LocalStorageManager {
     if (!LocalStorageManager.instance) {
@@ -561,7 +561,10 @@ class LocalStorageManager {
       { id: "expense-12", name: "Ev Eşyaları", type: "expense", color: "#92400e", user_id: this.currentUserId },
       { id: "expense-13", name: "Eğitim", type: "expense", color: "#0f766e", user_id: this.currentUserId },
       { id: "expense-14", name: "Kredi", type: "expense", color: "#b91c1c", user_id: this.currentUserId },
-      { id: "expense-15", name: "Diğer", type: "expense", color: "#525252", user_id: this.currentUserId },
+      { id: "expense-15", name: "Kira", type: "expense", color: "#7c2d12", user_id: this.currentUserId },
+      { id: "expense-16", name: "Aidat", type: "expense", color: "#a16207", user_id: this.currentUserId },
+      { id: "expense-17", name: "Kredi Kartı", type: "expense", color: "#991b1b", user_id: this.currentUserId },
+      { id: "expense-18", name: "Diğer", type: "expense", color: "#525252", user_id: this.currentUserId },
     ]
   }
 
