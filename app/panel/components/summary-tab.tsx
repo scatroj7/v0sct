@@ -73,16 +73,17 @@ export default function SummaryTab() {
   ]
 
   const prepareChartData = (transactions: Transaction[]) => {
-    const monthlyDataMap = new Map<string, { month: string; income: number; expense: number }>()
+    const monthlyDataMap = new Map<string, { month: string; income: number; expense: number; sortKey: string }>()
     const categoryDataMap = new Map<string, { name: string; value: number; type: string }>()
 
     transactions.forEach((transaction) => {
       const date = new Date(transaction.date)
-      const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
       const monthName = format(date, "LLL yyyy", { locale: tr })
+      const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
 
       if (!monthlyDataMap.has(monthKey)) {
-        monthlyDataMap.set(monthKey, { month: monthName, income: 0, expense: 0 })
+        monthlyDataMap.set(monthKey, { month: monthName, income: 0, expense: 0, sortKey })
       }
 
       const monthData = monthlyDataMap.get(monthKey)!
@@ -106,10 +107,9 @@ export default function SummaryTab() {
       }
     })
 
+    // Ayları kronolojik sıraya göre sırala (soldan sağa)
     const monthlyDataArray = Array.from(monthlyDataMap.values()).sort((a, b) => {
-      const dateA = new Date(a.month)
-      const dateB = new Date(b.month)
-      return dateA.getTime() - dateB.getTime()
+      return a.sortKey.localeCompare(b.sortKey)
     })
 
     const categoryDataArray = Array.from(categoryDataMap.values()).sort((a, b) => b.value - a.value)
@@ -252,6 +252,23 @@ export default function SummaryTab() {
     }).format(amount)
   }
 
+  // Özel Tooltip bileşeni
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900 mb-2">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: {formatCurrency(entry.value)}
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Finansal Özet</h2>
@@ -314,7 +331,7 @@ export default function SummaryTab() {
 
       {/* Özet Kartları */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Toplam Gelir</CardTitle>
           </CardHeader>
@@ -323,7 +340,7 @@ export default function SummaryTab() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Toplam Gider</CardTitle>
           </CardHeader>
@@ -332,7 +349,7 @@ export default function SummaryTab() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Net Bakiye</CardTitle>
           </CardHeader>
@@ -345,7 +362,7 @@ export default function SummaryTab() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">İşlem Sayısı</CardTitle>
           </CardHeader>
@@ -356,7 +373,7 @@ export default function SummaryTab() {
       </div>
 
       {/* Aylık Gelir/Gider Grafiği */}
-      <Card>
+      <Card className="hover:shadow-md transition-shadow duration-200">
         <CardHeader>
           <CardTitle>Aylık Gelir ve Gider</CardTitle>
           <CardDescription>
@@ -378,16 +395,25 @@ export default function SummaryTab() {
                     bottom: 5,
                   }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip
-                    formatter={(value) => formatCurrency(Number(value))}
-                    labelFormatter={(label) => `${label}`}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 12 }} />
+                  <YAxis className="text-xs" tick={{ fontSize: 12 }} />
+                  <Tooltip content={<CustomTooltip />} />
                   <Legend />
-                  <Bar dataKey="income" name="Gelir" fill="#4ade80" />
-                  <Bar dataKey="expense" name="Gider" fill="#f87171" />
+                  <Bar
+                    dataKey="income"
+                    name="Gelir"
+                    fill="#4ade80"
+                    radius={[2, 2, 0, 0]}
+                    className="hover:opacity-80 transition-opacity duration-200"
+                  />
+                  <Bar
+                    dataKey="expense"
+                    name="Gider"
+                    fill="#f87171"
+                    radius={[2, 2, 0, 0]}
+                    className="hover:opacity-80 transition-opacity duration-200"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -401,7 +427,7 @@ export default function SummaryTab() {
 
       {/* Kategori Bazlı Harcama Grafikleri */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
+        <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader>
             <CardTitle>Kategori Bazlı Giderler</CardTitle>
             <CardDescription>
@@ -424,14 +450,27 @@ export default function SummaryTab() {
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
+                      className="hover:opacity-80 transition-opacity duration-200"
                     >
                       {categoryData
                         .filter((cat) => cat.type === "expense")
                         .map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                            className="hover:opacity-80 transition-opacity duration-200 cursor-pointer"
+                          />
                         ))}
                     </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Tooltip
+                      formatter={(value) => formatCurrency(Number(value))}
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
@@ -443,7 +482,7 @@ export default function SummaryTab() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader>
             <CardTitle>Kategori Bazlı Gelirler</CardTitle>
             <CardDescription>
@@ -466,14 +505,27 @@ export default function SummaryTab() {
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
+                      className="hover:opacity-80 transition-opacity duration-200"
                     >
                       {categoryData
                         .filter((cat) => cat.type === "income")
                         .map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                            className="hover:opacity-80 transition-opacity duration-200 cursor-pointer"
+                          />
                         ))}
                     </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Tooltip
+                      formatter={(value) => formatCurrency(Number(value))}
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (

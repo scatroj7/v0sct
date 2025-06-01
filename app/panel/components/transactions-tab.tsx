@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { PlusIcon, Trash2Icon, EditIcon } from "lucide-react"
+import { PlusIcon, Trash2Icon, EditIcon, ChevronUpIcon, ChevronDownIcon } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { localStorageManager } from "@/app/lib/local-storage-manager"
 import { DatePicker } from "@/components/ui/date-picker"
 import { format } from "date-fns"
+import { tr } from "date-fns/locale"
 import type { DateRange } from "react-day-picker"
 
 interface Category {
@@ -59,6 +60,8 @@ export default function TransactionsTab() {
     frequency: "once" as "once" | "monthly" | "every3months" | "every6months" | "yearly" | "custom",
     customRepeatCount: "2", // Sadece özel seçenek için
   })
+  const [sortField, setSortField] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -462,13 +465,77 @@ export default function TransactionsTab() {
       filteredTransactions = filteredTransactions.filter((transaction) => transaction.type === typeFilter)
     }
 
+    // Sıralama uygula
+    if (sortField) {
+      filteredTransactions.sort((a, b) => {
+        let aValue: any = a[sortField as keyof Transaction]
+        let bValue: any = b[sortField as keyof Transaction]
+
+        // Özel sıralama mantıkları
+        switch (sortField) {
+          case "date":
+            aValue = new Date(aValue).getTime()
+            bValue = new Date(bValue).getTime()
+            break
+          case "amount":
+            aValue = Number(aValue)
+            bValue = Number(bValue)
+            break
+          case "category_name":
+            aValue = (aValue || "").toLowerCase()
+            bValue = (bValue || "").toLowerCase()
+            break
+          case "description":
+            aValue = aValue.toLowerCase()
+            bValue = bValue.toLowerCase()
+            break
+          case "type":
+            aValue = aValue.toLowerCase()
+            bValue = bValue.toLowerCase()
+            break
+          case "currency":
+            aValue = aValue.toLowerCase()
+            bValue = bValue.toLowerCase()
+            break
+        }
+
+        if (aValue < bValue) {
+          return sortDirection === "asc" ? -1 : 1
+        }
+        if (aValue > bValue) {
+          return sortDirection === "asc" ? 1 : -1
+        }
+        return 0
+      })
+    }
+
     setTransactions(filteredTransactions)
+  }
+
+  // Sıralama fonksiyonu
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Aynı sütuna tıklandıysa yönü değiştir
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      // Farklı sütuna tıklandıysa yeni sütunu seç ve artan sıralama yap
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
+  // Sıralama ikonu bileşeni
+  const SortIcon = ({ field }: { field: string }) => {
+    if (sortField !== field) {
+      return <div className="w-4 h-4" /> // Boş alan
+    }
+    return sortDirection === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
   }
 
   // Tarih aralığı değiştiğinde filtrele
   useEffect(() => {
     filterTransactions(allTransactions)
-  }, [dateRange, searchTerm, dateFilter, categoryFilter, typeFilter, allTransactions])
+  }, [dateRange, searchTerm, dateFilter, categoryFilter, typeFilter, allTransactions, sortField, sortDirection])
 
   // İlk yükleme
   useEffect(() => {
@@ -573,12 +640,73 @@ export default function TransactionsTab() {
       </div>
 
       <div className="mb-4">
-        <Label className="text-sm text-gray-600 mb-2 block">Manuel Tarih Aralığı (Opsiyonel)</Label>
-        <DatePicker
-          date={dateRange?.from}
-          onSelect={(date) => setDateRange(date ? { from: date, to: dateRange?.to } : undefined)}
-          placeholder="Tarih aralığı seçin"
-        />
+        <Label className="text-sm text-gray-600 mb-2 block">Ay Seçimi (Opsiyonel)</Label>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-sm text-gray-500 mb-1 block">Başlangıç Ayı</Label>
+            <Select
+              value={dateRange?.from ? format(dateRange.from, "yyyy-MM") : ""}
+              onValueChange={(value) => {
+                if (value) {
+                  const [year, month] = value.split("-")
+                  const startDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1)
+                  setDateRange({ from: startDate, to: dateRange?.to })
+                } else {
+                  setDateRange(undefined)
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Başlangıç ayı seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 24 }, (_, i) => {
+                  const date = new Date()
+                  date.setMonth(date.getMonth() - 12 + i)
+                  const value = format(date, "yyyy-MM")
+                  const label = format(date, "MMMM yyyy", { locale: tr })
+                  return (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-sm text-gray-500 mb-1 block">Bitiş Ayı</Label>
+            <Select
+              value={dateRange?.to ? format(dateRange.to, "yyyy-MM") : ""}
+              onValueChange={(value) => {
+                if (value) {
+                  const [year, month] = value.split("-")
+                  const endDate = new Date(Number.parseInt(year), Number.parseInt(month), 0) // Son gün
+                  setDateRange({ from: dateRange?.from, to: endDate })
+                } else {
+                  setDateRange({ from: dateRange?.from, to: undefined })
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Bitiş ayı seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 24 }, (_, i) => {
+                  const date = new Date()
+                  date.setMonth(date.getMonth() - 12 + i)
+                  const value = format(date, "yyyy-MM")
+                  const label = format(date, "MMMM yyyy", { locale: tr })
+                  return (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end mb-4">
@@ -614,12 +742,60 @@ export default function TransactionsTab() {
                   }}
                 />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tarih</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Açıklama</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Kategori</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tutar</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Para Birimi</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tip</th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("date")}
+              >
+                <div className="flex items-center justify-between">
+                  Tarih
+                  <SortIcon field="date" />
+                </div>
+              </th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("description")}
+              >
+                <div className="flex items-center justify-between">
+                  Açıklama
+                  <SortIcon field="description" />
+                </div>
+              </th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("category_name")}
+              >
+                <div className="flex items-center justify-between">
+                  Kategori
+                  <SortIcon field="category_name" />
+                </div>
+              </th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("amount")}
+              >
+                <div className="flex items-center justify-between">
+                  Tutar
+                  <SortIcon field="amount" />
+                </div>
+              </th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("currency")}
+              >
+                <div className="flex items-center justify-between">
+                  Para Birimi
+                  <SortIcon field="currency" />
+                </div>
+              </th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("type")}
+              >
+                <div className="flex items-center justify-between">
+                  Tip
+                  <SortIcon field="type" />
+                </div>
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">İşlemler</th>
             </tr>
           </thead>
