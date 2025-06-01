@@ -7,6 +7,7 @@ export interface Transaction {
   description: string
   type: "income" | "expense"
   category_id?: string
+  currency: string // Para birimi eklendi
   created_at: string
   updated_at: string
   user_id: string // Kullanıcı ID'si eklendi
@@ -76,7 +77,7 @@ class LocalStorageManager {
   private backupKey = "scatrack_backup"
   private encryptionKey = "scatrack_2024_secure_key"
   private currentUserId: string | null = null
-  private currentVersion = "2.2.0" // Versiyon güncellendi
+  private currentVersion = "2.3.0" // Versiyon güncellendi
 
   static getInstance(): LocalStorageManager {
     if (!LocalStorageManager.instance) {
@@ -133,6 +134,13 @@ class LocalStorageManager {
       if (!data.metadata.version || data.metadata.version !== this.currentVersion) {
         console.log("Kategori yapısı güncelleniyor...")
         data.categories = this.getDefaultCategories()
+
+        // Mevcut işlemlere para birimi ekle (eğer yoksa)
+        data.transactions = data.transactions.map((transaction) => ({
+          ...transaction,
+          currency: transaction.currency || "TRY",
+        }))
+
         data.metadata.version = this.currentVersion
         this.saveData(data)
       }
@@ -185,6 +193,7 @@ class LocalStorageManager {
       ...transaction,
       id: uuidv4(),
       user_id: this.currentUserId,
+      currency: transaction.currency || "TRY", // Varsayılan para birimi
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }

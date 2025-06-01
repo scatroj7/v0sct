@@ -29,8 +29,21 @@ interface Transaction {
   category_id: string
   category_name?: string
   category_color?: string
+  currency: string
   date: string
 }
+
+// Para birimleri listesi
+const currencies = [
+  { code: "TRY", name: "Türk Lirası", symbol: "₺" },
+  { code: "USD", name: "Amerikan Doları", symbol: "$" },
+  { code: "EUR", name: "Euro", symbol: "€" },
+  { code: "GBP", name: "İngiliz Sterlini", symbol: "£" },
+  { code: "JPY", name: "Japon Yeni", symbol: "¥" },
+  { code: "CHF", name: "İsviçre Frangı", symbol: "CHF" },
+  { code: "CAD", name: "Kanada Doları", symbol: "C$" },
+  { code: "AUD", name: "Avustralya Doları", symbol: "A$" },
+]
 
 export default function TransactionsTab() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -41,6 +54,7 @@ export default function TransactionsTab() {
     description: "",
     type: "expense",
     category_id: "",
+    currency: "TRY", // Varsayılan para birimi
     date: new Date(),
     frequency: "once" as "once" | "monthly" | "every3months" | "every6months" | "yearly" | "custom",
     customRepeatCount: "2", // Sadece özel seçenek için
@@ -60,6 +74,19 @@ export default function TransactionsTab() {
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
 
+  // Para birimi formatı
+  const formatCurrency = (amount: number, currencyCode: string) => {
+    const currency = currencies.find((c) => c.code === currencyCode)
+    if (currency) {
+      return new Intl.NumberFormat("tr-TR", {
+        style: "currency",
+        currency: currencyCode,
+        minimumFractionDigits: 2,
+      }).format(amount)
+    }
+    return `${amount.toFixed(2)} ${currencyCode}`
+  }
+
   // İşlemleri getir
   const fetchTransactions = async () => {
     try {
@@ -75,6 +102,7 @@ export default function TransactionsTab() {
       const categories = localStorageManager.getCategories()
       const transactionsWithCategories = localTransactions.map((transaction) => ({
         ...transaction,
+        currency: transaction.currency || "TRY", // Varsayılan para birimi ekle
         category_name: categories.find((cat) => cat.id === transaction.category_id)?.name || "Bilinmeyen",
         category_color: categories.find((cat) => cat.id === transaction.category_id)?.color,
       }))
@@ -140,6 +168,7 @@ export default function TransactionsTab() {
           description: newTransaction.description,
           type: newTransaction.type as "income" | "expense",
           category_id: newTransaction.category_id,
+          currency: newTransaction.currency,
           date: format(newTransaction.date, "yyyy-MM-dd"),
         }
 
@@ -207,6 +236,7 @@ export default function TransactionsTab() {
             description: description,
             type: newTransaction.type as "income" | "expense",
             category_id: newTransaction.category_id,
+            currency: newTransaction.currency,
             date: format(transactionDate, "yyyy-MM-dd"),
           }
 
@@ -222,6 +252,7 @@ export default function TransactionsTab() {
         description: "",
         type: "expense",
         category_id: "",
+        currency: "TRY",
         date: new Date(),
         frequency: "once",
         customRepeatCount: "2",
@@ -256,10 +287,11 @@ export default function TransactionsTab() {
         description: newTransaction.description,
         type: newTransaction.type as "income" | "expense",
         category_id: newTransaction.category_id,
+        currency: newTransaction.currency,
         date: format(newTransaction.date, "yyyy-MM-dd"),
       }
 
-      localStorageManager.updateTransaction(transactionData)
+      localStorageManager.updateTransaction(editingTransaction.id, transactionData)
       console.log("📦 Local storage'da işlem düzenlendi")
 
       // Formu sıfırla ve işlemleri yeniden getir
@@ -268,6 +300,7 @@ export default function TransactionsTab() {
         description: "",
         type: "expense",
         category_id: "",
+        currency: "TRY",
         date: new Date(),
         frequency: "once",
         customRepeatCount: "2",
@@ -315,6 +348,7 @@ export default function TransactionsTab() {
       description: transaction.description,
       type: transaction.type,
       category_id: transaction.category_id,
+      currency: transaction.currency || "TRY",
       date: new Date(transaction.date),
       frequency: "once",
       customRepeatCount: "2",
@@ -584,6 +618,7 @@ export default function TransactionsTab() {
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Açıklama</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Kategori</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tutar</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Para Birimi</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tip</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">İşlemler</th>
             </tr>
@@ -591,13 +626,13 @@ export default function TransactionsTab() {
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={7} className="px-6 py-4 text-center">
+                <td colSpan={8} className="px-6 py-4 text-center">
                   Yükleniyor...
                 </td>
               </tr>
             ) : transactions.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-4 text-center">
+                <td colSpan={8} className="px-6 py-4 text-center">
                   İşlem bulunamadı.
                 </td>
               </tr>
@@ -630,9 +665,12 @@ export default function TransactionsTab() {
                         transaction.type === "expense" ? "text-red-600 font-medium" : "text-green-600 font-medium"
                       }
                     >
-                      {new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(
-                        transaction.amount,
-                      )}
+                      {formatCurrency(transaction.amount, transaction.currency)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                      {transaction.currency}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -699,6 +737,26 @@ export default function TransactionsTab() {
                 className="col-span-3"
                 placeholder="0.00"
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="currency" className="text-right">
+                Para Birimi
+              </Label>
+              <Select
+                value={newTransaction.currency}
+                onValueChange={(value) => setNewTransaction({ ...newTransaction, currency: value })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Para birimi seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((currency) => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      {currency.symbol} {currency.name} ({currency.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="description" className="text-right">
@@ -839,6 +897,26 @@ export default function TransactionsTab() {
                 className="col-span-3"
                 placeholder="0.00"
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-currency" className="text-right">
+                Para Birimi
+              </Label>
+              <Select
+                value={newTransaction.currency}
+                onValueChange={(value) => setNewTransaction({ ...newTransaction, currency: value })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Para birimi seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((currency) => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      {currency.symbol} {currency.name} ({currency.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-description" className="text-right">

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, RefreshCw, TrendingUp, TrendingDown, Plus } from "lucide-react"
+import { Trash2, RefreshCw, TrendingUp, TrendingDown, Plus, Edit } from "lucide-react"
 import { investmentCategories, investmentTypes, stockSymbols } from "@/app/lib/investment-service"
 import {
   Dialog,
@@ -43,7 +43,9 @@ export default function InvestmentsTab() {
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
+  const [selectedInvestment, setSelectedInvestment] = useState<Investment | null>(null)
 
   // Form states
   const [formData, setFormData] = useState({
@@ -149,6 +151,76 @@ export default function InvestmentsTab() {
     }
   }
 
+  const handleEditInvestment = async () => {
+    if (!selectedInvestment) return
+
+    // Validation
+    if (!formData.category) {
+      alert("Lütfen bir kategori seçin.")
+      return
+    }
+
+    if (!formData.type) {
+      alert("Lütfen bir tür seçin.")
+      return
+    }
+
+    if (formData.category === "stock" && !formData.symbol) {
+      alert("Lütfen bir hisse senedi seçin.")
+      return
+    }
+
+    if (!formData.amount || !formData.purchase_price) {
+      alert("Lütfen miktar ve alış fiyatını girin.")
+      return
+    }
+
+    const amount = Number.parseFloat(formData.amount)
+    const purchase_price = Number.parseFloat(formData.purchase_price)
+
+    if (isNaN(amount) || isNaN(purchase_price) || amount <= 0 || purchase_price <= 0) {
+      alert("Lütfen geçerli sayısal değerler girin.")
+      return
+    }
+
+    try {
+      const investmentData = {
+        name: formData.name.trim() || formData.type,
+        category: formData.category,
+        type: formData.type,
+        amount: amount,
+        purchase_price: purchase_price,
+        symbol: formData.symbol || formData.type,
+        purchase_date: formData.purchase_date.toISOString().split("T")[0],
+        notes: formData.notes.trim(),
+      }
+
+      console.log("Güncellenen veri:", investmentData)
+
+      const response = await fetch(`/api/investments/${selectedInvestment.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(investmentData),
+      })
+
+      if (response.ok) {
+        await fetchInvestments()
+        resetForm()
+        setIsEditModalOpen(false)
+        setSelectedInvestment(null)
+      } else {
+        const errorData = await response.json()
+        console.error("API Error:", errorData)
+        alert(`Yatırım güncellenirken hata oluştu: ${errorData.details || errorData.error}`)
+      }
+    } catch (error) {
+      console.error("Yatırım güncellenirken hata:", error)
+      alert("Yatırım güncellenirken hata oluştu.")
+    }
+  }
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -181,6 +253,21 @@ export default function InvestmentsTab() {
       console.error("Yatırım silinirken hata:", error)
       alert("Yatırım silinirken hata oluştu.")
     }
+  }
+
+  const openEditModal = (investment: Investment) => {
+    setSelectedInvestment(investment)
+    setFormData({
+      name: investment.name,
+      category: investment.category,
+      type: investment.type,
+      amount: investment.amount.toString(),
+      purchase_price: investment.purchase_price.toString(),
+      symbol: investment.symbol || "",
+      purchase_date: investment.purchase_date ? new Date(investment.purchase_date) : new Date(),
+      notes: investment.notes || "",
+    })
+    setIsEditModalOpen(true)
   }
 
   const refreshPrices = async () => {
@@ -445,9 +532,14 @@ export default function InvestmentsTab() {
                     )}
                   </div>
 
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteInvestment(investment.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openEditModal(investment)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteInvestment(investment.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -586,6 +678,131 @@ export default function InvestmentsTab() {
               İptal
             </Button>
             <Button onClick={handleAddInvestment}>Yatırım Ekle</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Yatırım Düzenleme Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Yatırım Düzenle</DialogTitle>
+            <DialogDescription>Yatırım bilgilerini güncelleyin.</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Kategori *</label>
+                <Select value={formData.category} onValueChange={handleCategoryChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Kategori seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {investmentCategories.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.category && (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Tür *</label>
+                  <Select value={formData.type} onValueChange={handleTypeChange} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tür seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getAvailableTypes().map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {formData.category === "stock" && formData.type && (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Hisse Senedi *</label>
+                  <Select value={formData.symbol} onValueChange={handleSymbolChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Hisse seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getAvailableSymbols().map((symbol) => (
+                        <SelectItem key={symbol.value} value={symbol.value}>
+                          {symbol.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {formData.category === "crypto" && (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Yatırım Adı *</label>
+                  <Input
+                    type="text"
+                    placeholder="Örn: Bitcoin"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium mb-1 block">Miktar *</label>
+                <Input
+                  type="number"
+                  step="0.00001"
+                  placeholder="Örn: 0.5"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 block">Alış Fiyatı (TL) *</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="Örn: 1750000"
+                  value={formData.purchase_price}
+                  onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 block">Alış Tarihi</label>
+                <DatePicker
+                  date={formData.purchase_date}
+                  onSelect={(date) => setFormData({ ...formData, purchase_date: date || new Date() })}
+                  placeholder="Alış tarihini seçin"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-1 block">Notlar</label>
+              <Textarea
+                placeholder="Opsiyonel notlar"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              İptal
+            </Button>
+            <Button onClick={handleEditInvestment}>Değişiklikleri Kaydet</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
