@@ -32,8 +32,8 @@ export default function Home() {
             Finansal Geleceğinizi Kontrol Edin
           </h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto text-muted-foreground dark:text-gray-300">
-            Gelir ve giderlerinizi yapay zeka destekli analizlerle yönetin. Akıllı bütçeleme, gerçek zamanlı öngörüler
-            ve füturistik bir deneyim ile finansal gücünüzü artırın.
+            Gelir ve giderlerinizi analizlerle yönetin. Akıllı bütçeleme, gerçek zamanlı öngörüler ve füturistik bir
+            deneyim ile finansal gücünüzü artırın.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/login">
